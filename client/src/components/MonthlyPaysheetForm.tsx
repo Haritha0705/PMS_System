@@ -39,7 +39,6 @@ export function MonthlyPaysheetForm({
     codeNo: initialData?.codeNo || '',
     payMonth: initialData?.payMonth || new Date().toISOString().slice(0, 7),
     role: initialData?.role || '',
-    monthsOfService: initialData?.monthsOfService || 0,
     achieve: initialData?.achieve || 0,
     allowance: initialData?.allowance || 0,
     nopay: initialData?.nopay || 0,
@@ -146,11 +145,6 @@ export function MonthlyPaysheetForm({
     if (formData.role && !allCodes.includes(formData.role)) {
       errs.role = 'Invalid role selected';
     }
-
-    // monthsOfService
-    const mos = Number(formData.monthsOfService);
-    if (isNaN(mos) || mos < 0) errs.monthsOfService = 'Must be 0 or greater';
-    if (mos % 1 !== 0) errs.monthsOfService = 'Must be a whole number';
 
     // Amount fields: must be >= 0
     for (const field of AMOUNT_FIELDS) {
@@ -309,25 +303,6 @@ export function MonthlyPaysheetForm({
             </optgroup>
           </select>
           {errors.role && <div style={errorStyle}>{errors.role}</div>}
-        </div>
-
-        <div className="form-group">
-          <label>
-            Months of Service <span style={{ color: 'var(--ruby-500)' }}>*</span>
-          </label>
-          <input
-            type="number"
-            inputMode='numeric'
-            className="form-input"
-            name="monthsOfService"
-            value={formData.monthsOfService ?? ''}
-            onChange={handleInputChange}
-            placeholder="e.g., 6"
-            min="0"
-            step="1"
-            required
-          />
-          {errors.monthsOfService && <div style={errorStyle}>{errors.monthsOfService}</div>}
         </div>
       </div>
 

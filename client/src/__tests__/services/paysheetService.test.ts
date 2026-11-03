@@ -30,7 +30,7 @@ const samplePaysheet = {
   id: 'ps-001',
   codeNo: 'EMP001',
   payMonth: '2026-04',
-  role: 'RM',
+  role: 'PRM',
   monthsOfService: 12,
   achieve: 80000,
   allowance: 5000,
@@ -99,10 +99,10 @@ describe('paysheetService.listPaysheets', () => {
   it('passes filters as params', async () => {
     mockApi.get.mockResolvedValue({ data: { paysheets: [], total: 0, page: 1, totalPages: 0 } });
 
-    await paysheetService.listPaysheets({ payMonth: '2026-04', role: 'RM', page: 2 });
+    await paysheetService.listPaysheets({ payMonth: '2026-04', role: 'PRM', page: 2 });
 
     expect(mockApi.get).toHaveBeenCalledWith('/paysheets', {
-      params: { payMonth: '2026-04', role: 'RM', page: 2 },
+      params: { payMonth: '2026-04', role: 'PRM', page: 2 },
     });
   });
 
@@ -207,10 +207,10 @@ describe('paysheetService.getMonthPaysheets', () => {
   it('passes additional params', async () => {
     mockApi.get.mockResolvedValue({ data: { paysheets: [], total: 0, page: 1, totalPages: 0, month: '2026-04' } });
 
-    await paysheetService.getMonthPaysheets('2026-04', { search: 'John', role: 'RM', page: 2 });
+    await paysheetService.getMonthPaysheets('2026-04', { search: 'John', role: 'PRM', page: 2 });
 
     expect(mockApi.get).toHaveBeenCalledWith('/paysheets/month/2026-04', {
-      params: { search: 'John', role: 'RM', page: 2 },
+      params: { search: 'John', role: 'PRM', page: 2 },
     });
   });
 

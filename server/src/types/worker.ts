@@ -9,6 +9,9 @@ export interface PayslipEmployee {
   bankAccount: string;
   payMonth: string;
   basicSalary: number;
+  /** Sales (Category A): salary earned this month under the annual-cycle system. */
+  achievedSalary: number;
+  isSalesRole: boolean;
   vehicleAllowance: number;
   fuelAllowance: number;
   generalAllowance: number;

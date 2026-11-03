@@ -234,10 +234,44 @@ function toPaysheet(row: PrismaMonthlyPaysheet): MonthlyPaysheetDTO {
     epfEmployer:          d(row.epfEmployer),
     etf:                  d(row.etf),
     netSalary:            d(row.netSalary),
+    cycle:                row.cycle,
+    cycleMonth:           row.cycleMonth,
+    prevCarryForward:     d(row.prevCarryForward),
+    carryForward:         d(row.carryForward),
+    totalAchieved:        d(row.totalAchieved),
+    totalSalaryPaid:      d(row.totalSalaryPaid),
+    remainingTarget:      d(row.remainingTarget),
+    remainingSalary:      d(row.remainingSalary),
+    annualTargetCompleted: row.annualTargetCompleted,
     status:               (row.status as 'active' | 'delete') || 'active',
     createdAt:            row.createdAt.toISOString(),
     updatedAt:            row.updatedAt.toISOString(),
   };
+}
+
+/** Sales annual-cycle columns, shared by create / createMany / update. */
+function cycleFields(ps: MonthlyPaysheetDTO) {
+  return {
+    cycle:                 ps.cycle ?? 0,
+    cycleMonth:            ps.cycleMonth ?? 0,
+    prevCarryForward:      ps.prevCarryForward ?? 0,
+    carryForward:          ps.carryForward ?? 0,
+    totalAchieved:         ps.totalAchieved ?? 0,
+    totalSalaryPaid:       ps.totalSalaryPaid ?? 0,
+    remainingTarget:       ps.remainingTarget ?? 0,
+    remainingSalary:       ps.remainingSalary ?? 0,
+    annualTargetCompleted: ps.annualTargetCompleted ?? false,
+  };
+}
+
+/** All paysheets of one employee, oldest month first. */
+export async function dbGetPaysheetsByCodeNo(codeNo: string): Promise<MonthlyPaysheetDTO[]> {
+  const prisma = getPrisma();
+  const rows = await prisma.monthlyPaysheet.findMany({
+    where: { codeNo },
+    orderBy: { payMonth: 'asc' },
+  });
+  return rows.map(toPaysheet);
 }
 
 export async function dbGetAllPaysheets(): Promise<MonthlyPaysheetDTO[]> {
@@ -303,6 +337,7 @@ export async function dbCreatePaysheet(ps: MonthlyPaysheetDTO): Promise<void> {
       epfEmployer:          ps.epfEmployer,
       etf:                  ps.etf,
       netSalary:            ps.netSalary,
+      ...cycleFields(ps),
       status:               ps.status ?? 'active',
       createdAt:            ps.createdAt ? new Date(ps.createdAt) : new Date(),
       updatedAt:            ps.updatedAt ? new Date(ps.updatedAt) : new Date(),
@@ -351,6 +386,7 @@ export async function dbCreateManyPaysheets(psList: MonthlyPaysheetDTO[]): Promi
       epfEmployer:          ps.epfEmployer,
       etf:                  ps.etf,
       netSalary:            ps.netSalary,
+      ...cycleFields(ps),
       status:               ps.status ?? 'active',
       createdAt:            ps.createdAt ? new Date(ps.createdAt) : new Date(),
       updatedAt:            ps.updatedAt ? new Date(ps.updatedAt) : new Date(),
@@ -395,6 +431,7 @@ export async function dbUpdatePaysheet(id: string, ps: MonthlyPaysheetDTO): Prom
       epfEmployer:          ps.epfEmployer,
       etf:                  ps.etf,
       netSalary:            ps.netSalary,
+      ...cycleFields(ps),
       updatedAt:            ps.updatedAt ? new Date(ps.updatedAt) : new Date(),
     },
   });

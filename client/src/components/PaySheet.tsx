@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import type { MonthlyPaysheet, User } from '../types';
 import { formatCurrency, formatMonth } from '../utils/format';
+import { isSalesRole } from '../constants/salaryConfig';
 
 export type PaySheetSize = 'a5' | 'a4' | '2up';
 
@@ -17,7 +18,6 @@ export default function PaySheet({ paysheet, employee, size = 'a5' }: PaySheetPr
     basicSalary: paysheet.achievedSalary || 0,
     vehicleAllowance: paysheet.vehicleAllowance || 0,
     fuelAllowance: paysheet.fuelAllowance || 0,
-    orc: paysheet.orc || 0,
     otherOffers: paysheet.otherOffer || 0,
     generalAllowance: paysheet.generalAllowance || 0,
     customEarning: paysheet.customEarningAmount || 0,
@@ -38,7 +38,6 @@ export default function PaySheet({ paysheet, employee, size = 'a5' }: PaySheetPr
     earnings.basicSalary +
     earnings.vehicleAllowance +
     earnings.fuelAllowance +
-    earnings.orc +
     earnings.otherOffers +
     earnings.generalAllowance +
     earnings.customEarning
@@ -147,7 +146,7 @@ export default function PaySheet({ paysheet, employee, size = 'a5' }: PaySheetPr
 
       {/* ── EARNINGS ── */}
       <SectionHdr left="EARNINGS" right="AMOUNT (Rs.)" ds={ds} />
-      <DataItem label="Basic Offers" amount={earnings.basicSalary} ds={ds} />
+      <DataItem label={isSalesRole(paysheet.role) ? 'Salary Earned' : 'Basic Offers'} amount={earnings.basicSalary} ds={ds} />
       {earnings.vehicleAllowance > 0 && (
         <DataItem label="Vehicle Offer" amount={earnings.vehicleAllowance} ds={ds} alt />
       )}
@@ -157,7 +156,6 @@ export default function PaySheet({ paysheet, employee, size = 'a5' }: PaySheetPr
       {earnings.generalAllowance > 0 && (
         <DataItem label="General Offer" amount={earnings.generalAllowance} ds={ds} alt />
       )}
-      {earnings.orc > 0 && <DataItem label="ORC" amount={earnings.orc} ds={ds} />}
       {earnings.otherOffers > 0 && (
         <DataItem label="Other OFFERS" amount={earnings.otherOffers} ds={ds} alt />
       )}

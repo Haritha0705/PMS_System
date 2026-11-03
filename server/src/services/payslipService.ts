@@ -6,6 +6,7 @@ import fs from 'fs';
 import archiver from 'archiver';
 import logger from '../utils/logger';
 import { dbGetAllPaysheets, dbGetAllUsers, dbGetPaysheet, dbGetUser } from './dbStore';
+import { isSalesRole } from '../engine/salary-calculator';
 import { cacheGet, cacheSet, CK } from './cache';
 
 import puppeteer from 'puppeteer';
@@ -169,6 +170,8 @@ async function buildPayslipData(
       bankAccount: user?.bankAccount || '',
       payMonth: p.payMonth,
       basicSalary: p.basicSalary || 0,
+      achievedSalary: p.achievedSalary || 0,
+      isSalesRole: isSalesRole(p.role),
       vehicleAllowance: p.vehicleAllowance || 0,
       fuelAllowance: p.fuelAllowance || 0,
       generalAllowance: p.generalAllowance || 0,
@@ -502,6 +505,8 @@ export async function generateSinglePdf(paysheetId: string): Promise<Buffer> {
     bankAccount: user?.bankAccount || '',
     payMonth: paysheet.payMonth,
     basicSalary: paysheet.basicSalary || 0,
+    achievedSalary: paysheet.achievedSalary || 0,
+    isSalesRole: isSalesRole(paysheet.role),
     vehicleAllowance: paysheet.vehicleAllowance || 0,
     fuelAllowance: paysheet.fuelAllowance || 0,
     generalAllowance: paysheet.generalAllowance || 0,

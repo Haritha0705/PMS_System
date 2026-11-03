@@ -8,12 +8,12 @@ export const EPF_EMPLOYER_RATE = 0.12;
 export const ETF_RATE = 0.03;
 
 export interface SalesRoleConfig {
+  role: string;
   label: string;
-  basicSalary: number;
-  baseTarget: number;
-  vehicleAllowance: number;
-  fuelAllowance: number;
-  orcValue: number; // raw value; actual rate = orcValue / 100
+  annualTarget: number;
+  monthlyTarget: number;
+  annualSalary: number;
+  monthlySalary: number;
 }
 
 export interface NonTargetRoleConfig {
@@ -28,14 +28,11 @@ export interface NonTargetRoleConfig {
 }
 
 export const SALES_CONFIG: Record<string, SalesRoleConfig> = {
-  GM:  { label: 'General Manager',               basicSalary: 275_000, baseTarget: 500_000_000, vehicleAllowance: 150_000, fuelAllowance: 100_000, orcValue: 0.5 },
-  AGM: { label: 'Assistant General Manager',      basicSalary: 250_000, baseTarget: 250_000_000, vehicleAllowance: 120_000, fuelAllowance: 100_000, orcValue: 0.5 },
-  PH:  { label: 'Provincial Head',                basicSalary: 200_000, baseTarget:  50_000_000, vehicleAllowance: 100_000, fuelAllowance:  80_000, orcValue: 0.5 },
-  DPH: { label: 'Deputy Provincial Head',         basicSalary: 150_000, baseTarget:  30_000_000, vehicleAllowance: 100_000, fuelAllowance:  70_000, orcValue: 0.5 },
-  SRM: { label: 'Senior Regional Manager',        basicSalary:  85_000, baseTarget:  25_000_000, vehicleAllowance:  85_000, fuelAllowance:  30_000, orcValue: 0.5 },
-  RM:  { label: 'Regional Manager',               basicSalary:  80_000, baseTarget:   7_000_000, vehicleAllowance:  80_000, fuelAllowance:  30_000, orcValue: 1   },
-  BM:  { label: 'Branch Manager',                 basicSalary:  50_000, baseTarget:   3_500_000, vehicleAllowance:  30_000, fuelAllowance:  20_000, orcValue: 1   },
-  BDE: { label: 'Business Development Exec.',     basicSalary:  30_000, baseTarget:     200_000, vehicleAllowance:       0, fuelAllowance:       0, orcValue: 0   },
+  PGM:  { role: 'PGM',  label: 'Prestige General Manager',           annualTarget: 8_100_000_000, monthlyTarget: 675_000_000, annualSalary: 8_400_000, monthlySalary: 700_000 },
+  PAGM: { role: 'PAGM', label: 'Prestige Assistant General Manager', annualTarget: 2_700_000_000, monthlyTarget: 225_000_000, annualSalary: 7_500_000, monthlySalary: 625_000 },
+  PPH:  { role: 'PPH',  label: 'Prestige Provincial Head',           annualTarget:   900_000_000, monthlyTarget:  75_000_000, annualSalary: 6_600_000, monthlySalary: 550_000 },
+  PRM:  { role: 'PRM',  label: 'Prestige Regional Manager',          annualTarget:   180_000_000, monthlyTarget:  15_000_000, annualSalary: 4_200_000, monthlySalary: 350_000 },
+  PM:   { role: 'PM',   label: 'Prestige Manager',                   annualTarget:    18_000_000, monthlyTarget:   1_500_000, annualSalary: 1_800_000, monthlySalary: 150_000 },
 };
 
 export const NON_TARGET_CONFIG: Record<string, NonTargetRoleConfig> = {
@@ -60,14 +57,4 @@ export const NON_TARGET_CONFIG: Record<string, NonTargetRoleConfig> = {
 
 export function isSalesRole(role: string): boolean {
   return role in SALES_CONFIG;
-}
-
-/** Returns { pct: number (0–100), desc: string } for assigned-target multiplier */
-export function getTargetMultiplier(months: number): { pct: number; desc: string } {
-  if (months > 5) return { pct: 100, desc: '100% (6+ months of service)' };
-  if (months > 4) return { pct: 75,  desc: '75% (5 months of service)'  };
-  if (months > 3) return { pct: 65,  desc: '65% (4 months of service)'  };
-  if (months > 2) return { pct: 45,  desc: '45% (3 months of service)'  };
-  if (months > 1) return { pct: 35,  desc: '35% (2 months of service)'  };
-  return              { pct: 25,  desc: '25% (0–1 month of service)' };
 }

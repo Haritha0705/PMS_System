@@ -50,6 +50,11 @@ export const dbGetAllPaysheets = vi.fn(async (): Promise<MonthlyPaysheetDTO[]> =
 export const dbGetPaysheetsByMonth = vi.fn(async (payMonth: string): Promise<MonthlyPaysheetDTO[]> =>
   Array.from(_paysheets.values()).filter((p) => p.payMonth === payMonth)
 );
+export const dbGetPaysheetsByCodeNo = vi.fn(async (codeNo: string): Promise<MonthlyPaysheetDTO[]> =>
+  Array.from(_paysheets.values())
+    .filter((p) => p.codeNo === codeNo)
+    .sort((a, b) => a.payMonth.localeCompare(b.payMonth))
+);
 export const dbGetPaysheet = vi.fn(async (id: string): Promise<MonthlyPaysheetDTO | null> => _paysheets.get(id) ?? null);
 export const dbCreatePaysheet = vi.fn(async (ps: MonthlyPaysheetDTO): Promise<void> => { _paysheets.set(ps.id!, ps); });
 export const dbCreateManyPaysheets = vi.fn(async (psList: MonthlyPaysheetDTO[]): Promise<void> => {

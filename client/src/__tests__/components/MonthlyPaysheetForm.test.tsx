@@ -41,7 +41,7 @@ const fakePaysheet = {
   _id: 'ps1',
   codeNo: 'E001',
   payMonth: '2026-04',
-  role: 'GM',
+  role: 'PGM',
   monthsOfService: 12,
   achieve: 0,
   allowance: 0,

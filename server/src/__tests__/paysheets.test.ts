@@ -11,7 +11,7 @@
  * DELETE /api/paysheets/:id
  *
  * Route behaviour notes (from reading paysheets.routes.ts):
- * - Valid role codes: GM, AGM, PH, DPH, SRM, RM, BM, BDE, SR_EXEC_HR, JR_EXEC_HR, ...
+ * - Valid role codes: PGM, PAGM, PPH, PRM, PM, SR_EXEC_HR, JR_EXEC_HR, ...
  * - POST / returns 400 (not 409/404) for duplicate or missing user
  * - GET /:id returns { paysheet: {...} }
  * - PUT /:id returns { message, paysheet: {...} }
@@ -37,7 +37,7 @@ import { makeUser, makePaysheet, TEST_USER_CODE } from './helpers/fixtures';
 let app: FastifyInstance;
 let token: string;
 
-const VALID_ROLE = 'RM'; // Regional Manager — valid role code
+const VALID_ROLE = 'PRM'; // Prestige Regional Manager — valid role code
 
 beforeAll(async () => {
   app = await buildTestApp();
@@ -98,7 +98,7 @@ describe('POST /api/paysheets/calculate', () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it('returns 400 for missing monthsOfService', async () => {
+  it('accepts a payload without monthsOfService (no longer used)', async () => {
     const { monthsOfService: _m, ...incomplete } = validCalcPayload;
     const res = await app.inject({
       method: 'POST',
@@ -106,7 +106,7 @@ describe('POST /api/paysheets/calculate', () => {
       headers: authHeader(token),
       payload: incomplete,
     });
-    expect(res.statusCode).toBe(400);
+    expect(res.statusCode).toBe(200);
   });
 
   it('returns 401 without token', async () => {
@@ -463,5 +463,77 @@ describe('POST /api/paysheets/bulk-create', () => {
       payload: { payMonth: '2026-05', codeNos: ['U001'] },
     });
     expect(res.statusCode).toBe(401);
+  });
+});
+
+// ── Sales annual cycle across months ───────────────────────────
+// PM: monthly target 1,500,000, monthly salary 150,000.
+
+describe('Sales annual cycle — month-to-month chain', () => {
+  const base = {
+    codeNo: TEST_USER_CODE, role: 'PM', allowance: 0, nopay: 0, lateHours: 0, lateMinutes: 0,
+    epfAvailability: true, etfAvailability: true, welfare: 0, otherOffer: 0,
+    customEarningName: '', customEarningAmount: 0, customDeductionName: '', customDeductionAmount: 0,
+  };
+  const create = (payMonth: string, achieve: number) =>
+    app.inject({ method: 'POST', url: '/api/paysheets', headers: authHeader(token), payload: { ...base, payMonth, achieve } });
+
+  it('month 2 continues from month 1 (carry-forward lowers its target)', async () => {
+    const m1 = JSON.parse((await create('2026-01', 2_000_000)).body).paysheet;
+    expect(m1.achievedSalary).toBe(150_000);       // 100% (capped)
+    expect(m1.carryForward).toBe(500_000);
+    expect(m1.cycle).toBe(1);
+    expect(m1.cycleMonth).toBe(1);
+
+    const m2 = JSON.parse((await create('2026-02', 500_000)).body).paysheet;
+    expect(m2.prevCarryForward).toBe(500_000);
+    expect(m2.assignedTarget).toBe(1_000_000);    // 1.5M − 0.5M carry
+    expect(m2.achievedSalary).toBe(75_000);       // 50% of 150,000
+    expect(m2.cycleMonth).toBe(2);
+    expect(m2.totalAchieved).toBe(2_500_000);
+  });
+
+  it('editing month 1 recalculates month 2', async () => {
+    const m1 = JSON.parse((await create('2026-01', 2_000_000)).body).paysheet;
+    const m2 = JSON.parse((await create('2026-02', 500_000)).body).paysheet;
+
+    const res = await app.inject({
+      method: 'PUT', url: `/api/paysheets/${m1.id}`, headers: authHeader(token),
+      payload: { achieve: 1_500_000 },          // exactly on target → no carry
+    });
+    expect(res.statusCode).toBe(200);
+
+    const after = JSON.parse((await app.inject({
+      method: 'GET', url: `/api/paysheets/${m2.id}`, headers: authHeader(token),
+    })).body).paysheet;
+    expect(after.prevCarryForward).toBe(0);
+    expect(after.assignedTarget).toBe(1_500_000);
+    expect(after.achievedSalary).toBeCloseTo(50_000, 2); // 33.33% of 150,000
+  });
+
+  it('deleting month 1 makes month 2 start a fresh cycle', async () => {
+    const m1 = JSON.parse((await create('2026-01', 2_000_000)).body).paysheet;
+    const m2 = JSON.parse((await create('2026-02', 500_000)).body).paysheet;
+
+    await app.inject({ method: 'DELETE', url: `/api/paysheets/${m1.id}`, headers: authHeader(token) });
+
+    const after = JSON.parse((await app.inject({
+      method: 'GET', url: `/api/paysheets/${m2.id}`, headers: authHeader(token),
+    })).body).paysheet;
+    expect(after.cycleMonth).toBe(1);
+    expect(after.prevCarryForward).toBe(0);
+    expect(after.totalAchieved).toBe(500_000);
+  });
+
+  it('/calculate preview uses the real previous month when codeNo + payMonth are given', async () => {
+    await create('2026-01', 2_000_000);
+    const res = await app.inject({
+      method: 'POST', url: '/api/paysheets/calculate', headers: authHeader(token),
+      payload: { ...base, payMonth: '2026-02', achieve: 500_000 },
+    });
+    const calc = JSON.parse(res.body).calculation;
+    expect(calc.assignedTarget).toBe(1_000_000);
+    expect(calc.achievedSalary).toBe(75_000);
+    expect(calc.nextState).toBeUndefined();
   });
 });

@@ -17,16 +17,13 @@ export const JOB_ROLE_CATEGORIES = {
   NON_TARGET: "Non-Target Roles",
 } as const;
 
-// ── Category A roles ─────────────────────────────────────────
+// ── Category A roles (sales — annual-cycle salary system) ────
 export const SALES_BASED_ROLES = {
-  GM: "General Manager",
-  AGM: "Assistant General Manager",
-  PH: "Provincial Head",
-  DPH: "Deputy Provincial Head",
-  SRM: "Senior Regional Manager",
-  RM: "Regional Manager",
-  BM: "Branch Manager",
-  BDE: "Business Development Executive",
+  PGM: "Prestige General Manager",
+  PAGM: "Prestige Assistant General Manager",
+  PPH: "Prestige Provincial Head",
+  PRM: "Prestige Regional Manager",
+  PM: "Prestige Manager",
 } as const;
 export type SalesRole = keyof typeof SALES_BASED_ROLES;
 
@@ -52,82 +49,75 @@ export const NON_TARGET_ROLES = {
 } as const;
 export type NonTargetRole = keyof typeof NON_TARGET_ROLES;
 
-// ── Category A config (A3, A5, A7, A9, H3) ───────────────────
+// ── Category A config ────────────────────────────────────────
 export interface SalesRoleConfig {
+  role: SalesRole;
   label: string;
-  basicSalary: number; // A3
-  baseTarget: number; // H3
-  vehicleAllowance: number; // A5
-  fuelAllowance: number; // A7
-  orcValue: number; // A9 raw value; actual rate = orcValue/100
+  annualTarget: number;
+  monthlyTarget: number;
+  annualSalary: number;
+  monthlySalary: number;
 }
 
 export const SALES_CONFIG: Record<SalesRole, SalesRoleConfig> = {
-  GM: {
-    label: "General Manager",
-    basicSalary: 275_000,
-    baseTarget: 500_000_000,
-    vehicleAllowance: 150_000,
-    fuelAllowance: 100_000,
-    orcValue: 0.5,
-  },
-  AGM: {
-    label: "Assistant General Manager",
-    basicSalary: 250_000,
-    baseTarget: 250_000_000,
-    vehicleAllowance: 120_000,
-    fuelAllowance: 100_000,
-    orcValue: 0.5,
-  },
-  PH: {
-    label: "Provincial Head",
-    basicSalary: 200_000,
-    baseTarget: 50_000_000,
-    vehicleAllowance: 100_000,
-    fuelAllowance: 80_000,
-    orcValue: 0.5,
-  },
-  DPH: {
-    label: "Deputy Provincial Head",
-    basicSalary: 150_000,
-    baseTarget: 30_000_000,
-    vehicleAllowance: 100_000,
-    fuelAllowance: 70_000,
-    orcValue: 0.5,
-  },
-  SRM: {
-    label: "Senior Regional Manager",
-    basicSalary: 85_000,
-    baseTarget: 25_000_000,
-    vehicleAllowance: 85_000,
-    fuelAllowance: 30_000,
-    orcValue: 0.5,
-  },
-  RM: {
-    label: "Regional Manager",
-    basicSalary: 80_000,
-    baseTarget: 7_000_000,
-    vehicleAllowance: 80_000,
-    fuelAllowance: 30_000,
-    orcValue: 1,
-  },
-  BM: {
-    label: "Branch Manager",
-    basicSalary: 50_000,
-    baseTarget: 3_500_000,
-    vehicleAllowance: 30_000,
-    fuelAllowance: 20_000,
-    orcValue: 1,
-  },
-  BDE: {
-    label: "Business Development Exec.",
-    basicSalary: 30_000,
-    baseTarget: 200_000,
-    vehicleAllowance: 0,
-    fuelAllowance: 0,
-    orcValue: 0,
-  },
+  PGM:  { role: "PGM",  label: "Prestige General Manager",           annualTarget: 8_100_000_000, monthlyTarget: 675_000_000, annualSalary: 8_400_000, monthlySalary: 700_000 },
+  PAGM: { role: "PAGM", label: "Prestige Assistant General Manager", annualTarget: 2_700_000_000, monthlyTarget: 225_000_000, annualSalary: 7_500_000, monthlySalary: 625_000 },
+  PPH:  { role: "PPH",  label: "Prestige Provincial Head",           annualTarget:   900_000_000, monthlyTarget:  75_000_000, annualSalary: 6_600_000, monthlySalary: 550_000 },
+  PRM:  { role: "PRM",  label: "Prestige Regional Manager",          annualTarget:   180_000_000, monthlyTarget:  15_000_000, annualSalary: 4_200_000, monthlySalary: 350_000 },
+  PM:   { role: "PM",   label: "Prestige Manager",                   annualTarget:    18_000_000, monthlyTarget:   1_500_000, annualSalary: 1_800_000, monthlySalary: 150_000 },
 };
+
+// ── Category A annual-cycle state ────────────────────────────
+/** State carried from one month to the next (stored on each paysheet). */
+export interface EmployeePerformance {
+  role: SalesRole;
+  month: number;            // overall month counter (never resets)
+  cycle: number;            // annual cycle number (1, 2, 3 ...)
+  cycleMonth: number;       // months finished inside the current annual cycle (0 - 11)
+  totalAchieved: number;    // achieved inside the current annual cycle
+  totalSalaryPaid: number;  // salary paid inside the current annual cycle
+  carryForward: number;     // extra achievement carried to next month
+}
+
+export interface MonthlyResult {
+  role: SalesRole;
+  month: number;
+  cycle: number;
+  cycleMonth: number;
+
+  monthlyTarget: number;
+  previousCarryForward: number;
+  adjustedTarget: number;
+
+  actualAchievement: number;
+  achievementPercentage: number;
+  extraAchievement: number;
+
+  monthlySalary: number;
+  salaryEarned: number;
+
+  annualTarget: number;
+  totalAchieved: number;
+  remainingTarget: number;
+
+  annualSalary: number;
+  totalSalaryPaid: number;
+  remainingSalary: number;
+
+  carryForward: number;
+  annualTargetCompleted: boolean;
+  /** true when annualTarget / annualSalary are refreshed for the next month */
+  cycleRefreshed: boolean;
+  /** state to store and pass to the next month's calculation */
+  nextState: EmployeePerformance;
+}
+
+/** Starting state for an employee's first month on a sales role. */
+export function initialSalesState(role: SalesRole): EmployeePerformance {
+  return { role, month: 0, cycle: 1, cycleMonth: 0, totalAchieved: 0, totalSalaryPaid: 0, carryForward: 0 };
+}
+
+export const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 // ── Category B config ─────────────────────────────────────────
 export interface NonTargetRoleConfig {
@@ -164,7 +154,10 @@ export const NON_TARGET_CONFIG: Record<NonTargetRole, NonTargetRoleConfig> = {
 // ── Paysheet calculation input/output types ──────────────────
 export interface PaysheetInput {
   role: SalesRoleConfig | NonTargetRoleConfig;
-  monthsOfService: number;
+  /** Category A only — state after the employee's previous month (omit for the first month). */
+  previousState?: EmployeePerformance;
+  /** Legacy field, no longer used in any calculation. */
+  monthsOfService?: number;
   achievementAmount?: number;
   generalAllowance?: number;
   otherOffer?: number;
@@ -197,6 +190,19 @@ export interface PaysheetResult {
   welfare: number;
   customDeductionAmount?: number;
   netSalary: number;
+
+  // Category A annual-cycle details (state AFTER this month)
+  cycle?: number;
+  cycleMonth?: number;
+  previousCarryForward?: number;
+  carryForward?: number;
+  totalAchieved?: number;
+  totalSalaryPaid?: number;
+  remainingTarget?: number;
+  remainingSalary?: number;
+  annualTargetCompleted?: boolean;
+  cycleRefreshed?: boolean;
+  nextState?: EmployeePerformance;
 }
 
 // ============================================================
@@ -221,63 +227,125 @@ export function getRoleConfig(role: string): SalesRoleConfig | NonTargetRoleConf
 // Core calculation functions
 // ============================================================
 
-/** Col H — Assigned target based on months of service */
-export function calculateAssignedTarget(months: number, baseTarget: number): number {
-  if (!Number.isFinite(months) || !Number.isInteger(months) || months < 0)
-    throw new Error("months must be a non-negative integer");
-  if (!Number.isFinite(baseTarget) || baseTarget <= 0)
-    throw new Error("baseTarget must be a positive number");
-  if (months > 5) return baseTarget;
-  if (months > 4) return baseTarget * 0.75;
-  if (months > 3) return baseTarget * 0.65;
-  if (months > 2) return baseTarget * 0.45;
-  if (months > 1) return baseTarget * 0.35;
-  return baseTarget * 0.25;
-}
-
-/** Col J — Achievement %, floored to 2 decimal places (mirrors ROUNDDOWN) */
-export function calculateAchievementPct(achieveAmount: number, assignedTarget: number): number {
-  if (!Number.isFinite(achieveAmount) || achieveAmount < 0)
-    throw new Error("achieveAmount must be non-negative");
-  if (!Number.isFinite(assignedTarget) || assignedTarget <= 0)
-    throw new Error("assignedTarget must be positive");
-  return Math.floor((achieveAmount / assignedTarget) * 100) / 100;
-}
-
-/** Col K — Gross salary Cat A: >=50% → full basic, <50% → basic × ach × 2 */
-export function calculateAchieveSalary(achPct: number, basicSalary: number): number {
-  if (achPct >= 1.0) return basicSalary;
-  if (achPct >= 0.5) return basicSalary;
-  return basicSalary * achPct * 2;
-}
-
-/** Col L — Vehicle allowance: >=81% → 100%, 66–80% → 75%, 51–65% → 50%, <=50% → 0 */
-export function calculateVehicleAllowance(achPct: number, vehicleAmount: number): number {
-  if (achPct >= 0.81) return vehicleAmount;
-  if (achPct >= 0.66) return vehicleAmount * 0.75;
-  if (achPct >= 0.51) return vehicleAmount * 0.5;
-  return 0;
-}
-
-/** Col M — Fuel allowance (identical tier logic to vehicle) */
-export function calculateFuelAllowance(achPct: number, fuelAmount: number): number {
-  if (achPct >= 0.81) return fuelAmount;
-  if (achPct >= 0.66) return fuelAmount * 0.75;
-  if (achPct >= 0.51) return fuelAmount * 0.5;
-  return 0;
-}
-
 /**
- * Col O — ORC. Uses strictly > 1.00 (matches Row 4 formula — correct behavior).
- * orcValue is raw A9 cell value; actual rate = orcValue / 100.
+ * Category A — one month of the annual-cycle salary system.
+ * Uses the previous month's state; returns this month's salary and the next state.
  */
-export function calculateORC(
-    achieveAmount: number,
-    orcValue: number,
-    baseTarget: number
-): number {
-  if (achieveAmount > baseTarget) return (achieveAmount - baseTarget) * (orcValue / 100);
-  return 0;
+export function calculateMonthlySalary(
+  role: SalesRole,
+  actualAchievement: number,
+  previous: EmployeePerformance
+): MonthlyResult {
+  const config = SALES_CONFIG[role];
+  if (!config) throw new Error(`Unknown sales role: ${role}`);
+
+  if (!Number.isFinite(actualAchievement) || actualAchievement < 0) {
+    throw new Error("Invalid achievement amount");
+  }
+  if (previous.role !== role) {
+    throw new Error("Employee role does not match performance record");
+  }
+  if (!Number.isInteger(previous.cycleMonth) || previous.cycleMonth < 0 || previous.cycleMonth >= 12) {
+    throw new Error("Invalid cycle month");
+  }
+
+  const { annualTarget, monthlyTarget, annualSalary, monthlySalary } = config;
+  const cycleMonth = previous.cycleMonth + 1;
+
+  // 1. Remaining annual amounts in the current cycle
+  const remainingTarget = Math.max(0, annualTarget - previous.totalAchieved);
+  const remainingSalary = Math.max(0, annualSalary - previous.totalSalaryPaid);
+
+  // 2. This month's target = monthlyTarget minus previous carry-forward
+  //    (never more than what is left of the annual target)
+  const adjustedTarget = Math.min(remainingTarget, Math.max(0, monthlyTarget - previous.carryForward));
+
+  // 3. Annual progress
+  const acceptedAchievement = Math.min(actualAchievement, remainingTarget);
+  const totalAchieved = previous.totalAchieved + acceptedAchievement;
+
+  // 4. Annual target completed this month?
+  const annualTargetCompleted = totalAchieved >= annualTarget;
+
+  // 5. Achievement percentage against this month's target
+  const achievementPercentage = adjustedTarget === 0
+    ? 100
+    : Math.min(100, (actualAchievement / adjustedTarget) * 100);
+
+  // 6. Salary
+  let salaryEarned: number;
+  if (annualTargetCompleted) {
+    // Annual target done -> pay all remaining annual salary
+    salaryEarned = remainingSalary;
+  } else {
+    // Below target -> percentage of monthlySalary; on / over target -> full monthlySalary
+    salaryEarned = Math.min(monthlySalary * (achievementPercentage / 100), remainingSalary);
+  }
+  salaryEarned = round2(salaryEarned);
+
+  // 7. Carry-forward — carry larger than one monthlyTarget is consumed one month at a time.
+  const previousCarryUsed = Math.min(previous.carryForward, monthlyTarget);
+  const unusedPreviousCarry = previous.carryForward - previousCarryUsed;
+
+  // Extra = achievement above this month's target
+  //   (in the completion month: only the part above the annual target, which moves to the new cycle)
+  const extraAchievement = annualTargetCompleted
+    ? Math.max(0, actualAchievement - remainingTarget)
+    : Math.max(0, actualAchievement - adjustedTarget);
+
+  const carryForward = annualTargetCompleted ? extraAchievement : unusedPreviousCarry + extraAchievement;
+
+  // 8. Totals for this cycle
+  const totalSalaryPaid = round2(previous.totalSalaryPaid + salaryEarned);
+
+  // 9. Refresh annualTarget / annualSalary when the annual target is completed or the 12-month cycle ends
+  const cycleRefreshed = annualTargetCompleted || cycleMonth >= 12;
+
+  const nextState: EmployeePerformance = cycleRefreshed
+    ? {
+        role,
+        month: previous.month + 1,
+        cycle: previous.cycle + 1,
+        cycleMonth: 0,
+        totalAchieved: 0,
+        totalSalaryPaid: 0,
+        // keep extra over the annual target; drop carry at plain year-end
+        carryForward: annualTargetCompleted ? carryForward : 0,
+      }
+    : {
+        role,
+        month: previous.month + 1,
+        cycle: previous.cycle,
+        cycleMonth,
+        totalAchieved,
+        totalSalaryPaid,
+        carryForward,
+      };
+
+  return {
+    role,
+    month: previous.month + 1,
+    cycle: previous.cycle,
+    cycleMonth,
+    monthlyTarget,
+    previousCarryForward: previous.carryForward,
+    adjustedTarget,
+    actualAchievement,
+    achievementPercentage: round2(achievementPercentage),
+    extraAchievement,
+    monthlySalary,
+    salaryEarned,
+    annualTarget,
+    totalAchieved,
+    remainingTarget: Math.max(0, annualTarget - totalAchieved),
+    annualSalary,
+    totalSalaryPaid,
+    remainingSalary: round2(Math.max(0, annualSalary - totalSalaryPaid)),
+    carryForward: nextState.carryForward,
+    annualTargetCompleted,
+    cycleRefreshed,
+    nextState,
+  };
 }
 
 /** Col H Cat B — grossSalary = basic + otherOffer */
@@ -323,32 +391,25 @@ export function calculateETF(achievedSalary: number, epfAvailability: boolean): 
 // ============================================================
 
 export function calculatePaysheet(input: PaysheetInput): PaysheetResult {
-  const isSales = "baseTarget" in input.role;
-  const basicSalary = input.role.basicSalary;
+  const isSales = "annualTarget" in input.role;
 
   if (isSales) {
-    // Category A (Sales) calculation
+    // Category A (Sales) — annual-cycle salary system
     const saleConfig = input.role as SalesRoleConfig;
-    const assignedTarget = calculateAssignedTarget(input.monthsOfService, saleConfig.baseTarget);
-    const achievementAmount = input.achievementAmount || 0;
-    const achievementPct = calculateAchievementPct(achievementAmount, assignedTarget);
-    const achievedSalary = calculateAchieveSalary(achievementPct, basicSalary);
-    const workedDays = WORKING_DAYS_PER_MONTH - input.nopayDays;
-    const vehicleAllowance = workedDays > 7
-        ? calculateVehicleAllowance(achievementPct, saleConfig.vehicleAllowance)
-        : 0;
-    const fuelAllowance = workedDays > 7
-        ? calculateFuelAllowance(achievementPct, saleConfig.fuelAllowance)
-        : 0;
+    const roleCode = saleConfig.role;
+
+    const previous = input.previousState && input.previousState.role === roleCode
+      ? input.previousState
+      : initialSalesState(roleCode);
+    const cycle = calculateMonthlySalary(roleCode, input.achievementAmount || 0, previous);
+
+    // basicSalary = fixed monthly salary — the rate for no-pay / late deductions
+    const basicSalary = saleConfig.monthlySalary;
+    const achievedSalary = cycle.salaryEarned;
     const generalAllowance = input.generalAllowance || 0;
     const otherOffer = input.otherOffer || 0;
-    const orc = calculateORC(
-      achievementAmount,
-      saleConfig.orcValue,
-      saleConfig.baseTarget,
-    );
     const customEarningAmount = input.customEarningAmount || 0;
-    const grossSalary = achievedSalary + vehicleAllowance + fuelAllowance + generalAllowance + orc + customEarningAmount + otherOffer;
+    const grossSalary = achievedSalary + generalAllowance + otherOffer + customEarningAmount;
     const nopayDeduction = calculateNoPayDeduction(input.nopayDays, basicSalary);
     const lateDeduction = calculateLateDeduction(input.lateHours, input.lateMinutes, basicSalary);
     const epf = calculateEPF(achievedSalary, input.epfAvailability);
@@ -360,13 +421,13 @@ export function calculatePaysheet(input: PaysheetInput): PaysheetResult {
     return {
       basicSalary,
       achievedSalary,
-      vehicleAllowance,
-      fuelAllowance,
+      vehicleAllowance: 0,
+      fuelAllowance: 0,
       generalAllowance,
       otherOffer,
-      assignedTarget,
-      achievementPct,
-      orc,
+      assignedTarget: cycle.adjustedTarget,
+      achievementPct: cycle.achievementPercentage / 100,
+      orc: 0,
       customEarningAmount,
       grossSalary,
       nopayDeduction,
@@ -377,10 +438,22 @@ export function calculatePaysheet(input: PaysheetInput): PaysheetResult {
       welfare,
       customDeductionAmount,
       netSalary,
+      cycle: cycle.cycle,
+      cycleMonth: cycle.cycleMonth,
+      previousCarryForward: cycle.previousCarryForward,
+      carryForward: cycle.carryForward,
+      totalAchieved: cycle.totalAchieved,
+      totalSalaryPaid: cycle.totalSalaryPaid,
+      remainingTarget: cycle.remainingTarget,
+      remainingSalary: cycle.remainingSalary,
+      annualTargetCompleted: cycle.annualTargetCompleted,
+      cycleRefreshed: cycle.cycleRefreshed,
+      nextState: cycle.nextState,
     };
   } else {
     // Category B (Non-Target) calculation
     const roleConfig = input.role as NonTargetRoleConfig;
+    const basicSalary = roleConfig.basicSalary;
     const otherOffer = input.otherOffer || 0;
     const customEarningAmount = input.customEarningAmount || 0;
     // Flat allowances — always paid in full, NOT tiered by attendance or achievement (unlike Category A).

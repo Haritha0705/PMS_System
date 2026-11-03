@@ -20,9 +20,18 @@ describe('ROLE_SALARIES', () => {
   });
 
   it('contains Category A (sales) roles', () => {
-    expect(ROLE_SALARIES).toHaveProperty('General Manager');
-    expect(ROLE_SALARIES).toHaveProperty('Branch Manager');
-    expect(ROLE_SALARIES).toHaveProperty('Regional Manager');
+    expect(ROLE_SALARIES['Prestige General Manager']).toBe(700_000);
+    expect(ROLE_SALARIES['Prestige Assistant General Manager']).toBe(625_000);
+    expect(ROLE_SALARIES['Prestige Provincial Head']).toBe(550_000);
+    expect(ROLE_SALARIES['Prestige Regional Manager']).toBe(350_000);
+    expect(ROLE_SALARIES['Prestige Manager']).toBe(150_000);
+  });
+
+  it('no longer contains the old sales roles', () => {
+    for (const old of ['General Manager', 'Assistant General Manager', 'Provincial Head', 'Deputy Provincial Head',
+                       'Senior Regional Manager', 'Regional Manager', 'Branch Manager', 'Business Development Executive']) {
+      expect(ROLE_SALARIES).not.toHaveProperty(old);
+    }
   });
 
   it('contains Category B (non-target) roles', () => {
@@ -37,9 +46,9 @@ describe('ROLE_SALARIES', () => {
     }
   });
 
-  it('General Manager has highest salary', () => {
+  it('Prestige General Manager has highest salary', () => {
     const maxSalary = Math.max(...Object.values(ROLE_SALARIES));
-    expect(ROLE_SALARIES['General Manager']).toBe(maxSalary);
+    expect(ROLE_SALARIES['Prestige General Manager']).toBe(maxSalary);
   });
 });
 
@@ -67,16 +76,14 @@ describe('ROLE_NAME_TO_CODE', () => {
     expect(Object.keys(ROLE_NAME_TO_CODE).length).toBeGreaterThan(0);
   });
 
-  it('maps General Manager → GM', () => {
-    expect(ROLE_NAME_TO_CODE['General Manager']).toBe('GM');
-  });
-
-  it('maps Branch Manager → BM', () => {
-    expect(ROLE_NAME_TO_CODE['Branch Manager']).toBe('BM');
-  });
-
-  it('maps Regional Manager → RM', () => {
-    expect(ROLE_NAME_TO_CODE['Regional Manager']).toBe('RM');
+  it.each([
+    ['Prestige General Manager', 'PGM'],
+    ['Prestige Assistant General Manager', 'PAGM'],
+    ['Prestige Provincial Head', 'PPH'],
+    ['Prestige Regional Manager', 'PRM'],
+    ['Prestige Manager', 'PM'],
+  ])('maps %s → %s', (name, code) => {
+    expect(ROLE_NAME_TO_CODE[name]).toBe(code);
   });
 
   it('maps Admin Manager → ADMIN_MANAGER', () => {
@@ -108,6 +115,6 @@ describe('ROLE_ALLOWANCES', () => {
   });
 
   it('does not pre-fill allowances for sales roles', () => {
-    expect(ROLE_ALLOWANCES).not.toHaveProperty('General Manager');
+    expect(ROLE_ALLOWANCES).not.toHaveProperty('Prestige General Manager');
   });
 });

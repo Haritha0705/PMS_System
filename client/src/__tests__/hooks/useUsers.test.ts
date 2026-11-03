@@ -33,7 +33,7 @@ const sampleUser = {
   email: 'john@test.com',
   phone: '0771234567',
   branch: 'Colombo',
-  role: 'RM',
+  role: 'PRM',
   designation: 'Regional Manager',
   joinDate: '2023-01-01',
   bankAccount: '1234567890',
@@ -52,7 +52,7 @@ const defaultResponse = {
   page: 1,
   totalPages: 1,
   branches: ['Colombo'],
-  roles: ['RM'],
+  roles: ['PRM'],
 };
 
 beforeEach(() => {

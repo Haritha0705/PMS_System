@@ -13,10 +13,7 @@ import {
   isSalesRole,
   SALES_BASED_ROLES,
   NON_TARGET_ROLES,
-  type PaysheetInput,
   type PaysheetResult,
-  type SalesRoleConfig,
-  type NonTargetRoleConfig,
 } from '../../engine/salary-calculator';
 import {
   calculatePaysheetSchema,
@@ -27,40 +24,12 @@ import {
   listPaysheetsQuerySchema,
   monthPaysheetsQuerySchema,
 } from '../../validation/paysheets';
-
-// ── Shared helper ────────────────────────────────────────────
-
-function buildPaysheetInput(
-  roleCode: string,
-  roleConfig: SalesRoleConfig | NonTargetRoleConfig,
-  fields: {
-    monthsOfService: number;
-    achieve: number; allowance: number; otherOffer: number;
-    nopay: number; lateHours: number; lateMinutes: number;
-    welfare: number; epfAvailability: boolean;
-    customEarningAmount: number; customDeductionAmount: number;
-  }
-): PaysheetInput {
-  if (isSalesRole(roleCode)) {
-    return {
-      role: roleConfig, monthsOfService: fields.monthsOfService,
-      achievementAmount: fields.achieve, generalAllowance: fields.allowance,
-      otherOffer: fields.otherOffer, nopayDays: fields.nopay,
-      lateHours: fields.lateHours, lateMinutes: fields.lateMinutes,
-      others: fields.welfare, epfAvailability: fields.epfAvailability,
-      customEarningAmount: fields.customEarningAmount,
-      customDeductionAmount: fields.customDeductionAmount,
-    };
-  }
-  return {
-    role: roleConfig, monthsOfService: fields.monthsOfService,
-    otherOffer: fields.otherOffer, nopayDays: fields.nopay,
-    lateHours: fields.lateHours, lateMinutes: fields.lateMinutes,
-    others: fields.welfare, epfAvailability: fields.epfAvailability,
-    customEarningAmount: fields.customEarningAmount,
-    customDeductionAmount: fields.customDeductionAmount,
-  };
-}
+import {
+  buildPaysheetInput,
+  getPreviousState,
+  recalcFollowingMonths,
+  toPaysheetFields,
+} from '../../services/salesCycle';
 
 export default async function paysheetRoutes(fastify: FastifyInstance): Promise<void> {
 
@@ -77,15 +46,19 @@ export default async function paysheetRoutes(fastify: FastifyInstance): Promise<
       const roleConfig = getRoleConfig(d.role);
       if (!roleConfig) return reply.code(400).send({ error: `Invalid role code: ${d.role}` });
 
+      // Sales roles: continue from the employee's real previous month when known
+      const previousState = d.codeNo && d.payMonth
+        ? await getPreviousState(d.codeNo, d.payMonth, d.role)
+        : undefined;
+
       const input = buildPaysheetInput(d.role, roleConfig, {
-        monthsOfService: d.monthsOfService,
         achieve: d.achieve, allowance: d.allowance, otherOffer: d.otherOffer,
         nopay: d.nopay, lateHours: d.lateHours, lateMinutes: d.lateMinutes,
         welfare: d.welfare, epfAvailability: d.epfAvailability,
         customEarningAmount: d.customEarningAmount, customDeductionAmount: d.customDeductionAmount,
-      });
+      }, previousState);
 
-      const result: PaysheetResult = calculatePaysheet(input);
+      const { nextState: _next, ...result }: PaysheetResult = calculatePaysheet(input);
       return reply.send({ message: 'Paysheet calculation completed', calculation: result });
     } catch (error) {
       console.error('Error calculating paysheet:', error);
@@ -126,15 +99,16 @@ export default async function paysheetRoutes(fastify: FastifyInstance): Promise<
         const roleConfig = getRoleConfig(roleCode);
         if (!roleConfig) { errors.push(`Unknown role for ${codeNo}: ${roleName}`); continue; }
 
+        const previousState = await getPreviousState(codeNo, payMonth, roleCode);
         const input = buildPaysheetInput(roleCode, roleConfig, {
-          monthsOfService: 1, achieve: 0, allowance: 0, nopay: 0,
+          achieve: 0, allowance: 0, nopay: 0,
           lateHours: 0, lateMinutes: 0, welfare: 0, otherOffer: 0,
           epfAvailability: true, customEarningAmount: 0, customDeductionAmount: 0,
-        });
+        }, previousState);
 
-        const calculated: PaysheetResult = calculatePaysheet(input);
+        const calculated = toPaysheetFields(calculatePaysheet(input));
         toInsert.push({
-          id: uuidv4(), codeNo, payMonth, role: roleCode, monthsOfService: 1,
+          id: uuidv4(), codeNo, payMonth, role: roleCode, monthsOfService: 0,
           achieve: 0, allowance: 0, nopay: 0, late: 0, lateHours: 0, lateMinutes: 0,
           epfAvailability: true, etfAvailability: true,
           customEarningName: '', customEarningAmount: 0,
@@ -146,6 +120,10 @@ export default async function paysheetRoutes(fastify: FastifyInstance): Promise<
 
       // Single batch INSERT instead of N individual inserts
       await dbCreateManyPaysheets(toInsert);
+      // A month inserted before existing later months changes their starting state
+      for (const ps of toInsert) {
+        if (isSalesRole(ps.role)) await recalcFollowingMonths(ps.codeNo, ps.payMonth);
+      }
       await cacheInvalidatePrefix('paysheets:');
       return reply.send({ message: `Created ${toInsert.length} paysheet(s)`, created: toInsert.length, errors });
     } catch (error) {
@@ -230,14 +208,14 @@ export default async function paysheetRoutes(fastify: FastifyInstance): Promise<
         return reply.code(400).send({ error: `Paysheet already exists for ${d.codeNo} in ${d.payMonth}` });
       }
 
+      const previousState = await getPreviousState(d.codeNo, d.payMonth, d.role);
       const input = buildPaysheetInput(d.role, roleConfig, {
-        monthsOfService: d.monthsOfService,
         achieve: d.achieve, allowance: d.allowance, otherOffer: d.otherOffer,
         nopay: d.nopay, lateHours: d.lateHours, lateMinutes: d.lateMinutes,
         welfare: d.welfare, epfAvailability: d.epfAvailability,
         customEarningAmount: d.customEarningAmount, customDeductionAmount: d.customDeductionAmount,
-      });
-      const calculated: PaysheetResult = calculatePaysheet(input);
+      }, previousState);
+      const calculated = toPaysheetFields(calculatePaysheet(input));
       const now = new Date().toISOString();
 
       const newPaysheet: MonthlyPaysheetDTO = {
@@ -253,6 +231,7 @@ export default async function paysheetRoutes(fastify: FastifyInstance): Promise<
       };
 
       await dbCreatePaysheet(newPaysheet);
+      if (isSalesRole(d.role)) await recalcFollowingMonths(d.codeNo, d.payMonth);
       await cacheInvalidatePrefix('paysheets:');
       return reply.code(201).send({ message: 'Monthly paysheet created successfully', paysheet: newPaysheet });
     } catch (error) {
@@ -358,11 +337,12 @@ export default async function paysheetRoutes(fastify: FastifyInstance): Promise<
       const customDeductionName  = d.customDeductionName  ?? existing.customDeductionName  ?? '';
       const customDeductionAmount = d.customDeductionAmount ?? existing.customDeductionAmount ?? 0;
 
+      const previousState = await getPreviousState(existing.codeNo, existing.payMonth, existing.role);
       const input = buildPaysheetInput(existing.role, roleConfig, {
-        monthsOfService, achieve, allowance, otherOffer, nopay, lateHours, lateMinutes,
+        achieve, allowance, otherOffer, nopay, lateHours, lateMinutes,
         welfare, epfAvailability, customEarningAmount, customDeductionAmount,
-      });
-      const calculated: PaysheetResult = calculatePaysheet(input);
+      }, previousState);
+      const calculated = toPaysheetFields(calculatePaysheet(input));
 
       const updated: MonthlyPaysheetDTO = {
         ...existing, achieve, allowance, nopay, late: 0, lateHours, lateMinutes,
@@ -373,6 +353,7 @@ export default async function paysheetRoutes(fastify: FastifyInstance): Promise<
       };
 
       await dbUpdatePaysheet(request.params.id, updated);
+      if (isSalesRole(existing.role)) await recalcFollowingMonths(existing.codeNo, existing.payMonth);
       await cacheInvalidatePrefix('paysheets:');
       return reply.send({ message: 'Paysheet updated successfully', paysheet: updated });
     } catch (error) {
@@ -394,6 +375,7 @@ export default async function paysheetRoutes(fastify: FastifyInstance): Promise<
       if (!paysheet) return reply.code(404).send({ error: 'Paysheet not found' });
 
       await dbUpdatePaysheetStatus(request.params.id, status);
+      if (isSalesRole(paysheet.role)) await recalcFollowingMonths(paysheet.codeNo, paysheet.payMonth);
       await cacheInvalidatePrefix('paysheets:');
       paysheet.status = status;
       paysheet.updatedAt = new Date().toISOString();
@@ -412,6 +394,7 @@ export default async function paysheetRoutes(fastify: FastifyInstance): Promise<
       const paysheet = await dbGetPaysheet(request.params.id);
       if (!paysheet) return reply.code(404).send({ error: 'Paysheet not found' });
       await dbDeletePaysheet(request.params.id);
+      if (isSalesRole(paysheet.role)) await recalcFollowingMonths(paysheet.codeNo, paysheet.payMonth);
       await cacheInvalidatePrefix('paysheets:');
       return reply.send({ message: 'Paysheet deleted successfully', paysheet });
     } catch (error) {

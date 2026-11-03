@@ -66,8 +66,15 @@ async function bulkPaysheetsProcessor(job: Job<BulkPaysheetsJobData>): Promise<v
   await cacheSet(CK.JOB(jobId), { status: 'processing', total: codeNos.length, done: 0 }, 3600);
 
   const { dbGetUser, dbGetPaysheetsByMonth, dbCreatePaysheet, dbUpdatePaysheet } = await import('../services/dbStore');
-  const { calculatePaysheet, getRoleConfig, isSalesRole } = await import('../engine/salary-calculator');
+  const { calculatePaysheet, getRoleConfig, isSalesRole, SALES_BASED_ROLES, NON_TARGET_ROLES } =
+    await import('../engine/salary-calculator');
+  const { buildPaysheetInput, getPreviousState, recalcPaysheet, recalcFollowingMonths, toPaysheetFields } =
+    await import('../services/salesCycle');
   const { v4: uuidv4 } = await import('uuid');
+
+  // users.role stores the role LABEL; paysheets store the CODE
+  const nameToCode: Record<string, string> = {};
+  for (const [code, name] of Object.entries({ ...SALES_BASED_ROLES, ...NON_TARGET_ROLES })) nameToCode[name] = code;
 
   const existing = await dbGetPaysheetsByMonth(payMonth);
   const existingMap = new Map(existing.map((p) => [p.codeNo, p]));
@@ -79,39 +86,35 @@ async function bulkPaysheetsProcessor(job: Job<BulkPaysheetsJobData>): Promise<v
       if (!user) continue;
 
       const ex = existingMap.get(codeNo);
-      const input = {
-        role: user.role,
-        monthsOfService: 12,
-        achieve: 0,
-        allowance: 0,
-        nopay: 0,
-        late: 0,
-        lateHours: 0,
-        lateMinutes: 0,
-        epfAvailability: true,
-        etfAvailability: true,
-        welfare: 0,
-        otherOffer: 0,
-        customEarningName: '',
-        customEarningAmount: 0,
-        customDeductionName: '',
-        customDeductionAmount: 0,
-      };
-      const result = calculatePaysheet(input as any);
+      const roleCode = ex?.role ?? (nameToCode[user.role || user.designation || ''] || user.role);
+      if (!getRoleConfig(roleCode)) {
+        logger.warn(`[bulk-paysheets] unknown role for ${codeNo}: ${user.role}`);
+        continue;
+      }
+      const previousState = await getPreviousState(codeNo, payMonth, roleCode);
 
       if (ex) {
-        await dbUpdatePaysheet(ex.id!, { ...ex, ...result, updatedAt: new Date().toISOString() });
+        // Recalculate from the paysheet's own saved inputs (never wipe entered figures)
+        const next = recalcPaysheet(ex, previousState);
+        if (next) await dbUpdatePaysheet(ex.id!, next);
       } else {
+        const fields = {
+          achieve: 0, allowance: 0, nopay: 0, lateHours: 0, lateMinutes: 0,
+          welfare: 0, otherOffer: 0, epfAvailability: true,
+          customEarningAmount: 0, customDeductionAmount: 0,
+        };
+        const roleConfig = getRoleConfig(roleCode)!;
+        const result = toPaysheetFields(calculatePaysheet(buildPaysheetInput(roleCode, roleConfig, fields, previousState)));
+        const now = new Date().toISOString();
         await dbCreatePaysheet({
-          id: uuidv4(), codeNo, payMonth,
-          status: 'active',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          ...input, ...result,
-          role: user.role,
-          monthsOfService: 12,
+          id: uuidv4(), codeNo, payMonth, role: roleCode, monthsOfService: 0,
+          late: 0, etfAvailability: true,
+          customEarningName: '', customDeductionName: '',
+          ...fields, ...result,
+          status: 'active', createdAt: now, updatedAt: now,
         });
       }
+      if (isSalesRole(roleCode)) await recalcFollowingMonths(codeNo, payMonth);
 
       done++;
       await job.updateProgress(Math.round((done / codeNos.length) * 100));

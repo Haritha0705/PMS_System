@@ -28,7 +28,7 @@ const samplePaysheet = {
   id: 'ps-001',
   codeNo: 'EMP001',
   payMonth: '2026-04',
-  role: 'RM',
+  role: 'PRM',
   monthsOfService: 12,
   achieve: 80000,
   allowance: 5000,
@@ -78,12 +78,12 @@ describe('usePaysheets — initial fetch', () => {
   });
 
   it('passes filter options to listPaysheets', async () => {
-    renderHook(() => usePaysheets({ payMonth: '2026-04', role: 'RM', page: 2 }));
+    renderHook(() => usePaysheets({ payMonth: '2026-04', role: 'PRM', page: 2 }));
 
     await waitFor(() => expect(mockService.listPaysheets).toHaveBeenCalled());
 
     expect(mockService.listPaysheets).toHaveBeenCalledWith(
-      expect.objectContaining({ payMonth: '2026-04', role: 'RM', page: 2 })
+      expect.objectContaining({ payMonth: '2026-04', role: 'PRM', page: 2 })
     );
   });
 

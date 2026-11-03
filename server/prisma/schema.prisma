@@ -84,7 +84,7 @@ model MonthlyPaysheet {
   role            String  @db.VarChar(100)
   monthsOfService Int     @default(0) @map("months_of_service")
 
-  achieve               Decimal @default(0) @db.Decimal(12, 2)
+  achieve               Decimal @default(0) @db.Decimal(15, 2)
   allowance             Decimal @default(0) @db.Decimal(12, 2)
   nopay                 Decimal @default(0) @db.Decimal(6, 2)
   late                  Decimal @default(0) @db.Decimal(6, 2)
@@ -101,7 +101,7 @@ model MonthlyPaysheet {
 
   basicSalary      Decimal @default(0) @map("basic_salary") @db.Decimal(12, 2)
   achievedSalary   Decimal @default(0) @map("achieved_salary") @db.Decimal(12, 2)
-  assignedTarget   Decimal @default(0) @map("assigned_target") @db.Decimal(12, 2)
+  assignedTarget   Decimal @default(0) @map("assigned_target") @db.Decimal(15, 2)
   achievementPct   Decimal @default(0) @map("achievement_pct") @db.Decimal(8, 4)
   grossSalary      Decimal @default(0) @map("gross_salary") @db.Decimal(12, 2)
   vehicleAllowance Decimal @default(0) @map("vehicle_allowance") @db.Decimal(12, 2)
@@ -115,6 +115,17 @@ model MonthlyPaysheet {
   epfEmployer      Decimal @default(0) @map("epf_employer") @db.Decimal(12, 2)
   etf              Decimal @default(0) @db.Decimal(12, 2)
   netSalary        Decimal @default(0) @map("net_salary") @db.Decimal(12, 2)
+
+  // Sales (Category A) annual cycle — values for this month; cycle = 0 means "no cycle data"
+  cycle                 Int     @default(0)
+  cycleMonth            Int     @default(0) @map("cycle_month")
+  prevCarryForward      Decimal @default(0) @map("prev_carry_forward") @db.Decimal(15, 2)
+  carryForward          Decimal @default(0) @map("carry_forward") @db.Decimal(15, 2)
+  totalAchieved         Decimal @default(0) @map("total_achieved") @db.Decimal(15, 2)
+  totalSalaryPaid       Decimal @default(0) @map("total_salary_paid") @db.Decimal(15, 2)
+  remainingTarget       Decimal @default(0) @map("remaining_target") @db.Decimal(15, 2)
+  remainingSalary       Decimal @default(0) @map("remaining_salary") @db.Decimal(15, 2)
+  annualTargetCompleted Boolean @default(false) @map("annual_target_completed")
 
   status    String   @default("active") @db.VarChar(20)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()

@@ -75,6 +75,17 @@ export interface MonthlyPaysheetDTO {
   etf?: number;
   netSalary?: number;
 
+  // Sales (Category A) annual cycle — values for this month; cycle 0 = no cycle data
+  cycle?: number;
+  cycleMonth?: number;
+  prevCarryForward?: number;
+  carryForward?: number;
+  totalAchieved?: number;
+  totalSalaryPaid?: number;
+  remainingTarget?: number;
+  remainingSalary?: number;
+  annualTargetCompleted?: boolean;
+
   // Status
   status?: 'active' | 'delete';
 

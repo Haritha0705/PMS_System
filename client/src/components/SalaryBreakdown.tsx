@@ -3,7 +3,6 @@ import { ROLE_CODE_TO_NAME } from '../constants/roleSalaries';
 import {
   SALES_CONFIG,
   isSalesRole,
-  getTargetMultiplier,
   WORKING_DAYS_PER_MONTH,
   TOTAL_MINUTES_PER_MONTH,
   EPF_EMPLOYEE_RATE,
@@ -63,7 +62,6 @@ export function buildBreakdownRows(ps: MonthlyPaysheet): BreakdownRow[] {
   const sales = isSalesRole(role);
 
   const basic       = ps.basicSalary          ?? 0;
-  const mos         = ps.monthsOfService       ?? 0;
   const achAmt      = ps.achieve               ?? 0;
   const achPct      = ps.achievementPct        ?? 0;
   const nopay       = ps.nopay                 ?? 0;
@@ -73,14 +71,12 @@ export function buildBreakdownRows(ps: MonthlyPaysheet): BreakdownRow[] {
   const otherOffer  = ps.otherOffer            ?? 0;
   const custEarnAmt = ps.customEarningAmount   ?? 0;
   const custDedAmt  = ps.customDeductionAmount ?? 0;
-  const workedDays  = WORKING_DAYS_PER_MONTH - nopay;
   const totalMins   = lateHrs * 60 + lateMins;
 
   const achieved  = ps.achievedSalary  ?? 0;
   const vehAllow  = ps.vehicleAllowance ?? 0;
   const fuelAllow = ps.fuelAllowance   ?? 0;
   const genAllow  = ps.generalAllowance ?? 0;
-  const orc       = ps.orc             ?? 0;
   const gross     = ps.grossSalary     ?? 0;
   const nopayDed  = ps.nopayDeduction  ?? 0;
   const lateDed   = ps.lateDeduction   ?? 0;
@@ -93,92 +89,78 @@ export function buildBreakdownRows(ps: MonthlyPaysheet): BreakdownRow[] {
 
   if (sales) {
     const cfg = SALES_CONFIG[role];
-    const { pct, desc: tgtDesc } = getTargetMultiplier(mos);
-    const assignedTarget = ps.assignedTarget ?? 0;
+    const monthTarget   = ps.assignedTarget        ?? 0;
+    const prevCarry     = ps.prevCarryForward      ?? 0;
+    const carryNext     = ps.carryForward          ?? 0;
+    const totalAch      = ps.totalAchieved         ?? 0;
+    const remTarget     = ps.remainingTarget       ?? 0;
+    const paidCycle     = ps.totalSalaryPaid       ?? 0;
+    const remSalary     = ps.remainingSalary       ?? 0;
+    const completed     = ps.annualTargetCompleted ?? false;
+    const cycleNo       = ps.cycle                 ?? 0;
+    const cycleMonth    = ps.cycleMonth            ?? 0;
+    const refreshed     = completed || cycleMonth >= 12;
 
-    rows.push({ kind: 'input', step: 'Basic Salary',          formula: `${roleLabel} — fixed basic`,                              result: rs(basic) });
-    rows.push({ kind: 'info',  step: 'Category',              formula: 'Category A — Sales / Target-Based role',                  result: 'Cat A' });
-    rows.push({ kind: 'info',  step: 'Months of Service',     formula: 'Input — affects assigned target percentage',              result: `${mos} month(s)` });
-    rows.push({ kind: 'info',  step: 'Base Target (Monthly)', formula: `${roleLabel} standard monthly target`,                    result: rs(cfg.baseTarget) });
-
+    rows.push({ kind: 'info',  step: 'Category',       formula: 'Category A — Sales / annual-cycle salary system', result: 'Cat A' });
     rows.push({
-      kind: 'calc', step: 'Assigned Target',
-      formula: `${rs(cfg.baseTarget)} × ${pct}%   [${tgtDesc}]`,
-      result: rs(assignedTarget),
+      kind: 'info', step: 'Annual Cycle',
+      formula: cycleNo > 0
+        ? `Cycle ${cycleNo}, month ${cycleMonth} of 12${refreshed ? '  — new cycle starts next month' : ''}`
+        : 'No cycle data (created before the annual-cycle system)',
+      result: cycleNo > 0 ? `${cycleMonth} / 12` : '—',
     });
-
+    rows.push({ kind: 'input', step: 'Monthly Salary', formula: `${roleLabel} — fixed monthly salary (rate for no-pay / late)`, result: rs(basic) });
+    rows.push({ kind: 'info',  step: 'Monthly Target', formula: `${roleLabel} standard monthly target`,                          result: rs(cfg.monthlyTarget) });
+    rows.push({
+      kind: 'input', step: 'Previous Carry Forward',
+      formula: prevCarry > 0 ? 'Extra achievement brought from last month' : 'Nothing carried from last month',
+      result: rs(prevCarry),
+    });
+    rows.push({
+      kind: 'calc', step: "This Month's Target",
+      formula: prevCarry > 0
+        ? `${rs(cfg.monthlyTarget)} − ${rs(prevCarry)} carry   (never more than the remaining annual target)`
+        : `${rs(cfg.monthlyTarget)}   (never more than the remaining annual target)`,
+      result: rs(monthTarget),
+    });
     rows.push({ kind: 'input', step: 'Achievement Amount', formula: 'Input — actual sales / collections this month', result: rs(achAmt) });
-
     rows.push({
       kind: 'calc', step: 'Achievement %',
-      formula: assignedTarget > 0
-        ? `floor( ${rs(achAmt)} ÷ ${rs(assignedTarget)} × 100 ) ÷ 100`
-        : 'No assigned target — N/A',
-      result: `${pctStr(achPct)}  (${achPct.toFixed(4)})`,
+      formula: monthTarget > 0
+        ? `${rs(achAmt)} ÷ ${rs(monthTarget)} × 100   (max 100%)`
+        : "This month's target is covered by the carry forward → 100%",
+      result: pctStr(achPct),
     });
 
-    let achFormula: string;
-    if (achPct >= 0.5) {
-      achFormula = `${rs(basic)} × 1.00   (achievement ${pctStr(achPct)} ≥ 50% → full basic)`;
-    } else if (achPct > 0) {
-      achFormula = `${rs(basic)} × ${achPct.toFixed(4)} × 2   (achievement < 50% → basic × ach% × 2)`;
+    let earnedFormula: string;
+    if (completed) {
+      earnedFormula = 'Annual target completed — remaining annual salary paid';
+    } else if (achPct >= 1) {
+      earnedFormula = `${rs(basic)} × 100%   (on / over target → full monthly salary)`;
     } else {
-      achFormula = `${rs(basic)} × 0 × 2   (0% achievement → Rs. 0)`;
+      earnedFormula = `${rs(basic)} × ${pctStr(achPct)}   (below target → share of monthly salary)`;
     }
-    rows.push({ kind: 'calc', step: 'Achieved Salary', formula: achFormula, result: rs(achieved) });
+    rows.push({ kind: 'calc', step: 'Salary Earned', formula: earnedFormula, result: rs(achieved) });
 
-    rows.push({ kind: 'info', step: 'Worked Days', formula: `${WORKING_DAYS_PER_MONTH} working days − ${nopay} no-pay days`, result: `${workedDays} days` });
-
-    // Vehicle allowance
-    let vehFormula: string;
-    if (cfg.vehicleAllowance === 0) {
-      vehFormula = `${roleLabel} — no vehicle allowance in role config`;
-    } else if (workedDays <= 7) {
-      vehFormula = `${workedDays} days worked ≤ 7 → Rs. 0  (insufficient attendance)`;
-    } else if (achPct >= 0.81) {
-      vehFormula = `${rs(cfg.vehicleAllowance)} × 100%   (${pctStr(achPct)} ≥ 81% → full allowance)`;
-    } else if (achPct >= 0.66) {
-      vehFormula = `${rs(cfg.vehicleAllowance)} × 75%   (${pctStr(achPct)} between 66–80%)`;
-    } else if (achPct >= 0.51) {
-      vehFormula = `${rs(cfg.vehicleAllowance)} × 50%   (${pctStr(achPct)} between 51–65%)`;
-    } else {
-      vehFormula = `${pctStr(achPct)} ≤ 50% → Rs. 0  (below vehicle allowance threshold)`;
-    }
-    rows.push({ kind: 'calc', step: 'Vehicle Allowance', formula: vehFormula, result: rs(vehAllow) });
-
-    // Fuel allowance
-    let fuelFormula: string;
-    if (cfg.fuelAllowance === 0) {
-      fuelFormula = `${roleLabel} — no fuel allowance in role config`;
-    } else if (workedDays <= 7) {
-      fuelFormula = `${workedDays} days worked ≤ 7 → Rs. 0  (insufficient attendance)`;
-    } else if (achPct >= 0.81) {
-      fuelFormula = `${rs(cfg.fuelAllowance)} × 100%   (${pctStr(achPct)} ≥ 81% → full allowance)`;
-    } else if (achPct >= 0.66) {
-      fuelFormula = `${rs(cfg.fuelAllowance)} × 75%   (${pctStr(achPct)} between 66–80%)`;
-    } else if (achPct >= 0.51) {
-      fuelFormula = `${rs(cfg.fuelAllowance)} × 50%   (${pctStr(achPct)} between 51–65%)`;
-    } else {
-      fuelFormula = `${pctStr(achPct)} ≤ 50% → Rs. 0  (below fuel allowance threshold)`;
-    }
-    rows.push({ kind: 'calc', step: 'Fuel Allowance', formula: fuelFormula, result: rs(fuelAllow) });
+    rows.push({ kind: 'info', step: 'Annual Target',        formula: `${roleLabel} — target for the 12-month cycle`,          result: rs(cfg.annualTarget) });
+    rows.push({ kind: 'info', step: 'Total Achieved (Cycle)', formula: 'Achievement counted towards the annual target so far', result: rs(totalAch) });
+    rows.push({ kind: 'info', step: 'Remaining Target',     formula: `${rs(cfg.annualTarget)} − ${rs(totalAch)}`,            result: rs(remTarget) });
+    rows.push({ kind: 'info', step: 'Annual Salary',        formula: `${roleLabel} — salary for the 12-month cycle`,          result: rs(cfg.annualSalary) });
+    rows.push({ kind: 'info', step: 'Salary Paid (Cycle)',  formula: 'Salary earned so far in this cycle, including this month', result: rs(paidCycle) });
+    rows.push({ kind: 'info', step: 'Remaining Salary',     formula: `${rs(cfg.annualSalary)} − ${rs(paidCycle)}`,           result: rs(remSalary) });
+    rows.push({
+      kind: 'calc', step: 'Carry Forward to Next Month',
+      formula: carryNext > 0
+        ? (completed ? 'Achievement above the annual target — moves to the new cycle' : 'Achievement above this month\'s target (+ unused earlier carry)')
+        : (refreshed && !completed ? 'Cycle ended without completing the annual target — carry dropped' : 'Nothing to carry'),
+      result: rs(carryNext),
+    });
 
     rows.push({
       kind: 'input', step: 'General Allowance',
       formula: genAllow > 0 ? 'Input — additional allowance' : 'No general allowance',
       result: rs(genAllow),
     });
-
-    let orcFormula: string;
-    if (cfg.orcValue === 0) {
-      orcFormula = `${roleLabel} — no ORC in role config`;
-    } else if (achAmt > cfg.baseTarget) {
-      orcFormula = `( ${rs(achAmt)} − ${rs(cfg.baseTarget)} ) × ${cfg.orcValue}%   (over-achievement bonus)`;
-    } else {
-      orcFormula = `${rs(achAmt)} ≤ base target ${rs(cfg.baseTarget)} → Rs. 0  (no ORC unless over target)`;
-    }
-    rows.push({ kind: 'calc', step: `ORC  (${cfg.orcValue}% on over-achievement)`, formula: orcFormula, result: rs(orc) });
-
     if (custEarnAmt > 0) {
       rows.push({ kind: 'input', step: ps.customEarningName || 'Custom Earning', formula: 'Input — custom earning entry', result: rs(custEarnAmt) });
     }
@@ -239,7 +221,7 @@ export function buildBreakdownRows(ps: MonthlyPaysheet): BreakdownRow[] {
   rows.push({
     kind: 'deduction', step: `EPF — Employee (${(EPF_EMPLOYEE_RATE * 100).toFixed(0)}%)`,
     formula: ps.epfAvailability
-      ? `${sales ? rs(achieved) : rs(basic)} × ${(EPF_EMPLOYEE_RATE * 100).toFixed(0)}%   (calculated on ${sales ? 'achieved salary' : 'basic salary only'})`
+      ? `${sales ? rs(achieved) : rs(basic)} × ${(EPF_EMPLOYEE_RATE * 100).toFixed(0)}%   (calculated on ${sales ? 'salary earned' : 'basic salary only'})`
       : 'EPF not enrolled → Rs. 0',
     result: epfEmp > 0 ? `− ${rs(epfEmp)}` : '0.00',
   });
@@ -272,7 +254,7 @@ export function buildBreakdownRows(ps: MonthlyPaysheet): BreakdownRow[] {
   rows.push({
     kind: 'ref', step: `EPF — Employer (${(EPF_EMPLOYER_RATE * 100).toFixed(0)}%)`,
     formula: ps.epfAvailability
-      ? `${sales ? rs(achieved) : rs(basic)} × ${(EPF_EMPLOYER_RATE * 100).toFixed(0)}%   (company's EPF contribution — ${sales ? 'achieved salary' : 'basic salary only'})`
+      ? `${sales ? rs(achieved) : rs(basic)} × ${(EPF_EMPLOYER_RATE * 100).toFixed(0)}%   (company's EPF contribution — ${sales ? 'salary earned' : 'basic salary only'})`
       : 'EPF not enrolled → Rs. 0',
     result: rs(epfEmr),
   });
@@ -280,7 +262,7 @@ export function buildBreakdownRows(ps: MonthlyPaysheet): BreakdownRow[] {
   rows.push({
     kind: 'ref', step: `ETF (${(ETF_RATE * 100).toFixed(0)}%)`,
     formula: ps.epfAvailability
-      ? `${sales ? rs(achieved) : rs(basic)} × ${(ETF_RATE * 100).toFixed(0)}%   (company's ETF contribution — ${sales ? 'achieved salary' : 'basic salary only'})`
+      ? `${sales ? rs(achieved) : rs(basic)} × ${(ETF_RATE * 100).toFixed(0)}%   (company's ETF contribution — ${sales ? 'salary earned' : 'basic salary only'})`
       : 'EPF not enrolled → Rs. 0',
     result: rs(etf),
   });

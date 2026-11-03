@@ -5,7 +5,7 @@ import type { SALES_BASED_ROLES, NON_TARGET_ROLES } from '../engine/salary-calcu
 
 export const ALL_ROLE_CODES = [
   // Sales-based (Category A)
-  'GM', 'AGM', 'PH', 'DPH', 'SRM', 'RM', 'BM', 'BDE',
+  'PGM', 'PAGM', 'PPH', 'PRM', 'PM',
   // Non-target (Category B)
   'SR_EXEC_HR', 'JR_EXEC_HR', 'ADMIN_MANAGER', 'LEGAL_MANAGER',
   'EXEC_ASST_HR', 'EXEC_ASST_LAND', 'EXEC_GEM_1', 'EXEC_GEM_2', 'EXEC_MEDIA',
@@ -60,7 +60,11 @@ const customFieldPair = (nameProp: string, amountProp: string) =>
 
 export const calculatePaysheetSchema = z.object({
   role:                 roleCodeSchema,
-  monthsOfService:      mosSchema,
+  // Optional: lets the preview use the employee's real previous month (sales annual cycle)
+  codeNo:               z.string().min(1).max(50).optional(),
+  payMonth:             payMonthSchema.optional(),
+  /** Legacy — no longer used in any calculation. */
+  monthsOfService:      mosSchema.default(0),
   achieve:              moneySchema.default(0),
   allowance:            moneySchema.default(0),
   nopay:                daysSchema.default(0),
@@ -87,7 +91,8 @@ export const createPaysheetSchema = z.object({
   codeNo:               z.string().min(1, 'codeNo is required').max(50),
   payMonth:             payMonthSchema,
   role:                 roleCodeSchema,
-  monthsOfService:      mosSchema,
+  /** Legacy — no longer used in any calculation. */
+  monthsOfService:      mosSchema.default(0),
   achieve:              moneySchema.default(0),
   allowance:            moneySchema.default(0),
   nopay:                daysSchema.default(0),

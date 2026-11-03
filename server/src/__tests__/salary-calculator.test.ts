@@ -7,8 +7,6 @@ import {
   calculatePaysheet,
   getRoleConfig,
   isSalesRole,
-  calculateVehicleAllowance,
-  calculateFuelAllowance,
   NON_TARGET_ROLES,
 } from '../engine/salary-calculator';
 
@@ -17,85 +15,6 @@ import {
 function near(a: number, b: number) {
   return Math.abs(a - b) < 0.01;
 }
-
-// ── Vehicle / fuel allowance tier boundaries ─────────────────────────────────
-// Rule: >=81% → 100%, 66–80% → 75%, 51–65% → 50%, <=50% → 0.
-// Boundary values are asserted explicitly because they decide real payouts.
-
-describe('Vehicle allowance tiers (amount = 100,000)', () => {
-  const A = 100_000;
-  it('0%   → 0',       () => expect(calculateVehicleAllowance(0.00, A)).toBe(0));
-  it('50%  → 0',       () => expect(calculateVehicleAllowance(0.50, A)).toBe(0));
-  it('51%  → 50,000',  () => expect(calculateVehicleAllowance(0.51, A)).toBe(50_000));
-  it('65%  → 50,000',  () => expect(calculateVehicleAllowance(0.65, A)).toBe(50_000));
-  it('66%  → 75,000',  () => expect(calculateVehicleAllowance(0.66, A)).toBe(75_000));
-  it('80%  → 75,000',  () => expect(calculateVehicleAllowance(0.80, A)).toBe(75_000));
-  it('81%  → 100,000', () => expect(calculateVehicleAllowance(0.81, A)).toBe(100_000));
-  it('100% → 100,000', () => expect(calculateVehicleAllowance(1.00, A)).toBe(100_000));
-  it('150% → 100,000 (never exceeds full amount)', () =>
-    expect(calculateVehicleAllowance(1.50, A)).toBe(100_000));
-});
-
-describe('Fuel allowance tiers (amount = 80,000)', () => {
-  const A = 80_000;
-  it('50%  → 0',      () => expect(calculateFuelAllowance(0.50, A)).toBe(0));
-  it('51%  → 40,000', () => expect(calculateFuelAllowance(0.51, A)).toBe(40_000));
-  it('65%  → 40,000', () => expect(calculateFuelAllowance(0.65, A)).toBe(40_000));
-  it('66%  → 60,000', () => expect(calculateFuelAllowance(0.66, A)).toBe(60_000));
-  it('80%  → 60,000', () => expect(calculateFuelAllowance(0.80, A)).toBe(60_000));
-  it('81%  → 80,000', () => expect(calculateFuelAllowance(0.81, A)).toBe(80_000));
-  it('100% → 80,000', () => expect(calculateFuelAllowance(1.00, A)).toBe(80_000));
-});
-
-// ── Test 1: BM, 4 months, 2.2M achievement ───────────────────────────────────
-
-describe('BM — 4 months, 2.2M achievement, 2 no-pay, 1h45m late', () => {
-  const config = getRoleConfig('BM')!;
-  const result = calculatePaysheet({
-    role: config,
-    monthsOfService: 4,
-    achievementAmount: 2_200_000,
-    generalAllowance: 10_000,
-    otherOffer: 5_000,
-    nopayDays: 2,
-    lateHours: 1,
-    lateMinutes: 45,
-    others: 2000,
-    epfAvailability: true,
-  });
-
-  it('BM is a sales role', () => expect(isSalesRole('BM')).toBe(true));
-  it('assignedTarget = 2,275,000', () => expect(near(result.assignedTarget ?? 0, 2_275_000)).toBe(true));
-  it('achievementPct ≈ 96%', () => expect(near((result.achievementPct ?? 0) * 100, 96)).toBe(true));
-  it('otherOffer = 5,000', () => expect(near(result.otherOffer ?? 0, 5_000)).toBe(true));
-  it('vehicleAllowance = 30,000', () => expect(near(result.vehicleAllowance ?? 0, 30_000)).toBe(true));
-  it('nopayDeduction = 3,000', () => expect(near(result.nopayDeduction, 3_000)).toBe(true));
-  it('lateDeduction ≈ 437.5', () => expect(near(result.lateDeduction, 437.5)).toBe(true));
-  it('epfEmployee = 4,000', () => expect(near(result.epfEmployee, 4_000)).toBe(true));
-});
-
-// ── Test 2: AGM, 6 months, 251.5M (≈100%) ────────────────────────────────────
-
-describe('AGM — 6 months, 251.5M achievement (≈100%)', () => {
-  const config = getRoleConfig('AGM')!;
-  const result = calculatePaysheet({
-    role: config,
-    monthsOfService: 6,
-    achievementAmount: 250_000_000,
-    generalAllowance: 0,
-    nopayDays: 0,
-    lateHours: 0,
-    lateMinutes: 0,
-    others: 0,
-    epfAvailability: true,
-  });
-
-  it('assignedTarget = 250,000,000', () => expect(near(result.assignedTarget ?? 0, 250_000_000)).toBe(true));
-  it('vehicleAllowance = 120,000', () => expect(near(result.vehicleAllowance ?? 0, 120_000)).toBe(true));
-  it('fuelAllowance = 100,000', () => expect(near(result.fuelAllowance ?? 0, 100_000)).toBe(true));
-  it('orc = 0 (no ORC at exactly 100%)', () => expect(near(result.orc ?? 0, 0)).toBe(true));
-  it('netSalary = 450,000', () => expect(near(result.netSalary, 450_000)).toBe(true));
-});
 
 // ── Test 3: SR_EXEC_HR (Cat B), 2 no-pay, 10h late ──────────────────────────
 
@@ -158,28 +77,6 @@ describe('ADMIN_MANAGER — 1 month, 5K fixed allowance, 0 otherOffer, 2 no-pay,
 
   it('grossSalary = 80,000', () => expect(near(result.grossSalary, 80_000)).toBe(true));
   it('netSalary = 65,750', () => expect(near(result.netSalary, 65_750)).toBe(true));
-});
-
-// ── Test 6: BM, 5 months, exactly 100% achievement ───────────────────────────
-
-describe('BM — 5 months, exactly 100% achievement', () => {
-  const config = getRoleConfig('BM')!;
-  const result = calculatePaysheet({
-    role: config,
-    monthsOfService: 5,
-    achievementAmount: 2_625_000,
-    generalAllowance: 0,
-    nopayDays: 0,
-    lateHours: 0,
-    lateMinutes: 0,
-    others: 0,
-    epfAvailability: true,
-  });
-
-  it('assignedTarget = 2,625,000', () => expect(near(result.assignedTarget ?? 0, 2_625_000)).toBe(true));
-  it('vehicleAllowance = 30,000', () => expect(near(result.vehicleAllowance ?? 0, 30_000)).toBe(true));
-  it('orc = 0 at exactly 100%', () => expect(near(result.orc ?? 0, 0)).toBe(true));
-  it('netSalary = 96,000', () => expect(near(result.netSalary, 96_000)).toBe(true));
 });
 
 // ── Test 7: EXEC_MICRO_FIN_1 (Cat B), EPF not enrolled ───────────────────────
@@ -272,31 +169,6 @@ describe('LEGAL_MANAGER — Legal Manager, fixed salary, no target', () => {
   it('epfEmployer = 9,000 (12% of basic)', () => expect(near(result.epfEmployer, 9_000)).toBe(true));
   it('etf = 2,250 (3% of basic)', () => expect(near(result.etf, 2_250)).toBe(true));
   it('netSalary = 69,000', () => expect(near(result.netSalary, 69_000)).toBe(true));
-});
-
-// ── GM with otherOffer ────────────────────────────────────────────────────────
-
-describe('GM — 2 months, 75M achievement, 10K otherOffer', () => {
-  const config = getRoleConfig('GM')!;
-  const result = calculatePaysheet({
-    role: config,
-    monthsOfService: 2,
-    achievementAmount: 75_000_000,
-    generalAllowance: 0,
-    otherOffer: 10_000,
-    nopayDays: 0,
-    lateHours: 0,
-    lateMinutes: 0,
-    others: 0,
-    epfAvailability: true,
-  });
-
-  it('GM is a sales role', () => expect(isSalesRole('GM')).toBe(true));
-  it('assignedTarget = 175,000,000', () => expect(near(result.assignedTarget ?? 0, 175_000_000)).toBe(true));
-  it('achievementPct ≈ 42%', () => expect(near((result.achievementPct ?? 0) * 100, 42)).toBe(true));
-  it('otherOffer = 10,000', () => expect(near(result.otherOffer ?? 0, 10_000)).toBe(true));
-  it('epfEmployee = 18,480', () => expect(near(result.epfEmployee, 18_480)).toBe(true));
-  it('grossSalary includes otherOffer', () => expect(result.grossSalary).toBeGreaterThanOrEqual(10_000));
 });
 
 // ── Category B role table — gross must match the official salary table ──────

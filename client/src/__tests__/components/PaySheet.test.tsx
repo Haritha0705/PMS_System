@@ -133,4 +133,15 @@ describe('PaySheet component', () => {
     render(<PaySheet paysheet={ps} />);
     expect(screen.getByText('Bonus')).toBeInTheDocument();
   });
+
+  it('labels earnings "Salary Earned" for sales roles', () => {
+    render(<PaySheet paysheet={{ ...fakePaysheet, role: 'PGM' }} />);
+    expect(screen.getByText('Salary Earned')).toBeInTheDocument();
+    expect(screen.queryByText('Basic Offers')).not.toBeInTheDocument();
+  });
+
+  it('labels earnings "Basic Offers" for non-target roles', () => {
+    render(<PaySheet paysheet={fakePaysheet} />);
+    expect(screen.getByText('Basic Offers')).toBeInTheDocument();
+  });
 });
