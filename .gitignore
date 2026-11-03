@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+# Build outputs
+dist/
+build/
+out/
+# Environment
+.env
+.env.local
+.env.*.local
+# IDE
+.idea/
+.vscode/
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# OS
+.DS_Store
+Thumbs.db
+# Logs
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+# Test coverage
+coverage/
+.nyc_output/
+# Temporary
+.cache/
+temp/
+tmp/
+.vscode/
+.idea/

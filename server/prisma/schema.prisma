@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+  engineType = "node"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Admin ────────────────────────────────────────────────────
+
+model Admin {
+  id       Int    @id @default(autoincrement())
+  username String @unique @db.VarChar(100)
+  password String
+  name     String @db.VarChar(200)
+  role     String @default("super_admin") @db.VarChar(50)
+
+  @@map("admin")
+}
+
+// ── Users (Employees) ────────────────────────────────────────
+
+model User {
+  codeNo      String  @id @map("code_no") @db.VarChar(50)
+  firstName   String  @map("first_name") @db.VarChar(200)
+  lastName    String  @map("last_name") @db.VarChar(200)
+  email       String  @unique @db.VarChar(300)
+  phone       String  @default("") @db.VarChar(50)
+  branch      String  @default("") @db.VarChar(200)
+  role        String  @default("") @db.VarChar(100)
+  designation String  @default("") @db.VarChar(200)
+  joinDate    String  @default("") @map("join_date") @db.VarChar(20)
+  bankAccount String  @default("") @map("bank_account") @db.VarChar(100)
+  bankName    String  @default("") @map("bank_name") @db.VarChar(200)
+  basicSalary Decimal @default(0) @map("basic_salary") @db.Decimal(12, 2)
+  allowances  Decimal @default(0) @db.Decimal(12, 2)
+  deductions  Decimal @default(0) @db.Decimal(12, 2)
+  status      String  @default("active") @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamptz()
+
+  payrollRecords   PayrollRecord[]
+  monthlyPaysheets MonthlyPaysheet[]
+
+  @@index([branch])
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+// ── Payroll Records ──────────────────────────────────────────
+
+model PayrollRecord {
+  id          String  @id @db.VarChar(100)
+  codeNo      String  @map("code_no") @db.VarChar(50)
+  userName    String  @map("user_name") @db.VarChar(400)
+  period      String  @db.VarChar(20)
+  basicSalary Decimal @default(0) @map("basic_salary") @db.Decimal(12, 2)
+  allowances  Decimal @default(0) @db.Decimal(12, 2)
+  deductions  Decimal @default(0) @db.Decimal(12, 2)
+  tax         Decimal @default(0) @db.Decimal(12, 2)
+  grossSalary Decimal @default(0) @map("gross_salary") @db.Decimal(12, 2)
+  netSalary   Decimal @default(0) @map("net_salary") @db.Decimal(12, 2)
+  branch      String  @default("") @db.VarChar(200)
+  designation String  @default("") @db.VarChar(200)
+  generatedAt DateTime @default(now()) @map("generated_at") @db.Timestamptz()
+
+  user User @relation(fields: [codeNo], references: [codeNo], onDelete: Cascade)
+
+  @@unique([codeNo, period])
+  @@index([period])
+  @@index([generatedAt])
+  @@index([codeNo])
+  @@map("payroll_records")
+}
+
+// ── Monthly Paysheets ────────────────────────────────────────
+
+model MonthlyPaysheet {
+  id              String  @id @db.VarChar(100)
+  codeNo          String  @map("code_no") @db.VarChar(50)
+  payMonth        String  @map("pay_month") @db.VarChar(10)
+  role            String  @db.VarChar(100)
+  monthsOfService Int     @default(0) @map("months_of_service")
+
+  achieve               Decimal @default(0) @db.Decimal(12, 2)
+  allowance             Decimal @default(0) @db.Decimal(12, 2)
+  nopay                 Decimal @default(0) @db.Decimal(6, 2)
+  late                  Decimal @default(0) @db.Decimal(6, 2)
+  lateHours             Int     @default(0) @map("late_hours")
+  lateMinutes           Int     @default(0) @map("late_minutes")
+  epfAvailability       Boolean @default(true) @map("epf_availability")
+  etfAvailability       Boolean @default(true) @map("etf_availability")
+  welfare               Decimal @default(0) @db.Decimal(12, 2)
+  otherOffer            Decimal @default(0) @map("other_offer") @db.Decimal(12, 2)
+  customEarningName     String  @default("") @map("custom_earning_name") @db.VarChar(200)
+  customEarningAmount   Decimal @default(0) @map("custom_earning_amount") @db.Decimal(12, 2)
+  customDeductionName   String  @default("") @map("custom_deduction_name") @db.VarChar(200)
+  customDeductionAmount Decimal @default(0) @map("custom_deduction_amount") @db.Decimal(12, 2)
+
+  basicSalary      Decimal @default(0) @map("basic_salary") @db.Decimal(12, 2)
+  achievedSalary   Decimal @default(0) @map("achieved_salary") @db.Decimal(12, 2)
+  assignedTarget   Decimal @default(0) @map("assigned_target") @db.Decimal(12, 2)
+  achievementPct   Decimal @default(0) @map("achievement_pct") @db.Decimal(8, 4)
+  grossSalary      Decimal @default(0) @map("gross_salary") @db.Decimal(12, 2)
+  vehicleAllowance Decimal @default(0) @map("vehicle_allowance") @db.Decimal(12, 2)
+  fuelAllowance    Decimal @default(0) @map("fuel_allowance") @db.Decimal(12, 2)
+  generalAllowance Decimal @default(0) @map("general_allowance") @db.Decimal(12, 2)
+  orc              Decimal @default(0) @db.Decimal(12, 2)
+  subTotal         Decimal @default(0) @map("sub_total") @db.Decimal(12, 2)
+  nopayDeduction   Decimal @default(0) @map("nopay_deduction") @db.Decimal(12, 2)
+  lateDeduction    Decimal @default(0) @map("late_deduction") @db.Decimal(12, 2)
+  epfEmployee      Decimal @default(0) @map("epf_employee") @db.Decimal(12, 2)
+  epfEmployer      Decimal @default(0) @map("epf_employer") @db.Decimal(12, 2)
+  etf              Decimal @default(0) @db.Decimal(12, 2)
+  netSalary        Decimal @default(0) @map("net_salary") @db.Decimal(12, 2)
+
+  status    String   @default("active") @db.VarChar(20)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz()
+
+  user User @relation(fields: [codeNo], references: [codeNo], onDelete: Cascade)
+
+  @@unique([codeNo, payMonth])
+  @@index([payMonth])
+  @@index([role])
+  @@index([status])
+  @@index([codeNo])
+  @@map("monthly_paysheets")
+}
+
+// ── Refresh Tokens ───────────────────────────────────────────
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  hash      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  expiresAt DateTime @map("expires_at") @db.Timestamptz()
+
+  @@index([hash])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
