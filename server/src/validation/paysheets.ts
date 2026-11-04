@@ -11,7 +11,7 @@ export const ALL_ROLE_CODES = [
   'EXEC_ASST_HR', 'EXEC_ASST_LAND', 'EXEC_GEM_1', 'EXEC_GEM_2', 'EXEC_MEDIA',
   'CABANA_PM', 'NETWORK_IT_MANAGER', 'HEAD_MICRO_FIN',
   'EXEC_MICRO_FIN_1', 'EXEC_MICRO_FIN_2', 'MICRO_FIN_UNIT_HEAD',
-  'GEMO', 'EXEC_ASST_FIN',
+  'GEMO', 'EXEC_ASST_FIN', 'COORD',
 ] as const;
 
 export type RoleCode = (typeof ALL_ROLE_CODES)[number];

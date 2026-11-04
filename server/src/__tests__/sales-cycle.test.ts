@@ -201,9 +201,9 @@ describe('calculatePaysheet — PGM with deductions', () => {
   it('achievementPct stored as a fraction', () => expect(r.achievementPct).toBeCloseTo(0.7, 6));
   it('gross = salaryEarned + general allowance', () => expect(r.grossSalary).toBe(500_000));
   it('no-pay = 700,000 / 25 × 1.5', () => expect(r.nopayDeduction).toBeCloseTo(42_000, 2));
-  it('EPF 8% on salaryEarned', () => expect(r.epfEmployee).toBeCloseTo(39_200, 2));
+  it('EPF 8% on the fixed value (achievement 25% or more)', () => expect(r.epfEmployee).toBeCloseTo(14_000, 2));
   it('ETF 3% on salaryEarned', () => expect(r.etf).toBeCloseTo(14_700, 2));
-  it('net = 500,000 − 42,000 − 39,200', () => expect(r.netSalary).toBeCloseTo(418_800, 2));
+  it('net = 500,000 − 42,000 − 14,000', () => expect(r.netSalary).toBeCloseTo(444_000, 2));
   it('no ORC, vehicle or fuel', () => {
     expect(r.orc).toBe(0);
     expect(r.vehicleAllowance).toBe(0);
@@ -228,5 +228,61 @@ describe('calculatePaysheet — previous state from another role starts fresh', 
     expect(r.previousCarryForward).toBe(0);
     expect(r.cycleMonth).toBe(1);
     expect(r.achievedSalary).toBe(350_000);
+  });
+});
+
+// ── EPF (employee 8%) for sales roles ────────────────────────────────────────
+
+describe('Category A EPF 8%', () => {
+  const epfFor = (role: string, achievementAmount: number, epfAvailability = true) =>
+    calculatePaysheet({
+      role: getRoleConfig(role)!, achievementAmount,
+      nopayDays: 0, lateHours: 0, lateMinutes: 0, epfAvailability,
+    });
+
+  const TABLE: [string, number, number, number][] = [
+    ['PGM',  675_000_000, 175_000, 14_000],
+    ['PAGM', 225_000_000, 156_250, 12_500],
+    ['PPH',   75_000_000, 137_500, 11_000],
+    ['PRM',   15_000_000,  87_500,  7_000],
+    ['PM',     1_500_000,  37_500,  3_000],
+  ];
+
+  for (const [role, monthlyTarget, fixedValue, epf] of TABLE) {
+    it(`${role}: fixed value ${fixedValue} gives EPF ${epf} at exactly 25%`, () => {
+      expect(epfFor(role, monthlyTarget * 0.25).epfEmployee).toBeCloseTo(epf, 2);
+    });
+
+    it(`${role}: EPF stays ${epf} at 100% and over`, () => {
+      expect(epfFor(role, monthlyTarget).epfEmployee).toBeCloseTo(epf, 2);
+      expect(epfFor(role, monthlyTarget * 1.5).epfEmployee).toBeCloseTo(epf, 2);
+    });
+
+    it(`${role}: below 25% EPF is 8% of the salary achieved`, () => {
+      const r = epfFor(role, monthlyTarget * 0.1);
+      expect(r.epfEmployee).toBeCloseTo(r.achievedSalary * 0.08, 2);
+      expect(r.epfEmployee).toBeLessThan(epf);
+    });
+  }
+
+  it('just under 25% is not rounded up to the fixed value', () => {
+    const r = epfFor('PM', 374_990); // 24.9993%, stored rounded as 25%
+    expect(r.achievementPct).toBeCloseTo(0.25, 6);
+    expect(r.epfEmployee).toBeCloseTo(r.achievedSalary * 0.08, 2);
+    expect(r.epfEmployee).toBeLessThan(3_000);
+  });
+
+  it('nothing achieved -> no EPF', () => expect(epfFor('PM', 0).epfEmployee).toBe(0));
+  it('not enrolled -> no EPF', () => expect(epfFor('PM', 1_500_000, false).epfEmployee).toBe(0));
+
+  it('employer EPF and ETF stay on the salary earned', () => {
+    const r = epfFor('PM', 1_500_000);
+    expect(r.epfEmployer).toBeCloseTo(18_000, 2);
+    expect(r.etf).toBeCloseTo(4_500, 2);
+  });
+
+  it('net salary deducts the new EPF', () => {
+    const r = epfFor('PM', 1_500_000);
+    expect(r.netSalary).toBeCloseTo(150_000 - 3_000, 2);
   });
 });

@@ -28,6 +28,18 @@ export const paysheetService = {
     }
   },
 
+  /** Preview without saving. Sales roles continue from the employee's previous month. */
+  async calculatePaysheet(
+    data: Pick<MonthlyPaysheet, 'codeNo' | 'payMonth' | 'role' | 'achieve'>
+  ): Promise<{ message: string; calculation: Partial<MonthlyPaysheet> }> {
+    try {
+      const response = await api.post('/paysheets/calculate', data);
+      return response.data;
+    } catch (error: unknown) {
+      throw new Error(extractErrorMessage(error, 'Failed to calculate paysheet'));
+    }
+  },
+
   async listPaysheets(filters: PaysheetListParams = {}): Promise<PaysheetResponse> {
     try {
       const response = await api.get<PaysheetResponse>('/paysheets', { params: filters });

@@ -20,6 +20,21 @@ const base: MonthlyPaysheet = {
 
 const row = (rows: ReturnType<typeof buildBreakdownRows>, step: string) => rows.find((r) => r.step === step);
 
+describe('buildBreakdownRows — sales EPF', () => {
+  const epfRow = (ps: MonthlyPaysheet) => row(buildBreakdownRows(ps), 'EPF — Employee (8%)');
+
+  it('names the fixed value when it was used', () => {
+    const r = epfRow({ ...base, epfEmployee: 14_000 });
+    expect(r?.formula).toContain((175_000).toLocaleString('en-IN', { minimumFractionDigits: 2 }));
+    expect(r?.formula).toContain('fixed value');
+  });
+
+  it('names the salary earned below 25% and on paysheets saved before the fixed values', () => {
+    expect(epfRow({ ...base, achievedSalary: 70_000, epfEmployee: 5_600 })?.formula).toContain('salary earned');
+    expect(epfRow(base)?.formula).toContain('salary earned');
+  });
+});
+
 describe('buildBreakdownRows — sales role', () => {
   const rows = buildBreakdownRows(base);
 

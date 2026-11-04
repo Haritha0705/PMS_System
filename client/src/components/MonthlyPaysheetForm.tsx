@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { paysheetService } from '../services/paysheetService';
 import { userService } from '../services/userService';
 import { ROLE_NAME_TO_CODE, ROLE_CODE_TO_NAME } from '../constants/roleSalaries';
-import { SALES_CONFIG, NON_TARGET_CONFIG } from '../constants/salaryConfig';
+import { SALES_CONFIG, NON_TARGET_CONFIG, isSalesRole } from '../constants/salaryConfig';
+import { formatCurrency } from '../utils/format';
 import type { User, MonthlyPaysheet } from '../types';
 import { showToast } from './Toast';
 
@@ -35,6 +36,7 @@ export function MonthlyPaysheetForm({
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [remaining, setRemaining] = useState<{ key: string; target: number; salary: number } | null>(null);
   const [formData, setFormData] = useState<Partial<MonthlyPaysheet>>({
     codeNo: initialData?.codeNo || '',
     payMonth: initialData?.payMonth || new Date().toISOString().slice(0, 7),
@@ -81,6 +83,40 @@ export function MonthlyPaysheetForm({
   };
 
   const matchedUser = users.find((u) => u.codeNo === formData.codeNo);
+
+  // Remaining annual amounts for sales roles — the server continues from the employee's previous month
+  const remainingKey = matchedUser && formData.role && isSalesRole(formData.role) && formData.payMonth
+    ? `${formData.codeNo}|${formData.payMonth}|${formData.role}`
+    : null;
+
+  useEffect(() => {
+    if (!remainingKey) return;
+    const { codeNo, payMonth, role, achieve } = formData;
+    let stale = false;
+    const timer = setTimeout(async () => {
+      try {
+        const { calculation } = await paysheetService.calculatePaysheet({
+          codeNo: codeNo!, payMonth: payMonth!, role: role!, achieve: Number(achieve) || 0,
+        });
+        if (!stale) {
+          setRemaining({
+            key: remainingKey,
+            target: calculation.remainingTarget ?? 0,
+            salary: calculation.remainingSalary ?? 0,
+          });
+        }
+      } catch {
+        if (!stale) setRemaining(null); // display only — the fields fall back to "—"
+      }
+    }, 300);
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- remainingKey covers codeNo, payMonth and role
+  }, [remainingKey, formData.achieve]);
+
+  const currentRemaining = remaining?.key === remainingKey ? remaining : null;
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -372,6 +408,35 @@ export function MonthlyPaysheetForm({
           </div>
         </div>
       </div>
+
+      {formData.role && isSalesRole(formData.role) && (
+        <div style={{ borderTop: '1px solid var(--neutral-700)', paddingTop: 16, marginTop: 8 }}>
+          <h3 style={{ marginBottom: 16, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+            Remaining Target Annual Amount & Remaining Annual Salary
+          </h3>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Remaining Target Annual Amount</label>
+              <input
+                type="text"
+                className="form-input"
+                value={currentRemaining ? formatCurrency(currentRemaining.target) : '—'}
+                disabled
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Remaining Annual Salary</label>
+              <input
+                type="text"
+                className="form-input"
+                value={currentRemaining ? formatCurrency(currentRemaining.salary) : '—'}
+                disabled
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ borderTop: '1px solid var(--neutral-700)', paddingTop: 16, marginTop: 8 }}>
         <h3 style={{ marginBottom: 16, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>

@@ -20,11 +20,11 @@ describe('ROLE_SALARIES', () => {
   });
 
   it('contains Category A (sales) roles', () => {
-    expect(ROLE_SALARIES['Prestige General Manager']).toBe(700_000);
-    expect(ROLE_SALARIES['Prestige Assistant General Manager']).toBe(625_000);
-    expect(ROLE_SALARIES['Prestige Provincial Head']).toBe(550_000);
-    expect(ROLE_SALARIES['Prestige Regional Manager']).toBe(350_000);
-    expect(ROLE_SALARIES['Prestige Manager']).toBe(150_000);
+    expect(ROLE_SALARIES['Project General Manager']).toBe(700_000);
+    expect(ROLE_SALARIES['Project Assistant General Manager']).toBe(625_000);
+    expect(ROLE_SALARIES['Project Provincial Head']).toBe(550_000);
+    expect(ROLE_SALARIES['Project Regional Manager']).toBe(350_000);
+    expect(ROLE_SALARIES['Project Manager']).toBe(150_000);
   });
 
   it('no longer contains the old sales roles', () => {
@@ -41,14 +41,14 @@ describe('ROLE_SALARIES', () => {
   });
 
   it('no longer contains removed Category B roles', () => {
-    for (const old of ['Manager Admin', 'HR & Finance Head', 'CCI (Collections/Call Center)', 'Coordinator', 'Legal Officer']) {
+    for (const old of ['Manager Admin', 'HR & Finance Head', 'CCI (Collections/Call Center)', 'Legal Officer']) {
       expect(ROLE_SALARIES).not.toHaveProperty(old);
     }
   });
 
-  it('Prestige General Manager has highest salary', () => {
+  it('Project General Manager has highest salary', () => {
     const maxSalary = Math.max(...Object.values(ROLE_SALARIES));
-    expect(ROLE_SALARIES['Prestige General Manager']).toBe(maxSalary);
+    expect(ROLE_SALARIES['Project General Manager']).toBe(maxSalary);
   });
 });
 
@@ -77,11 +77,11 @@ describe('ROLE_NAME_TO_CODE', () => {
   });
 
   it.each([
-    ['Prestige General Manager', 'PGM'],
-    ['Prestige Assistant General Manager', 'PAGM'],
-    ['Prestige Provincial Head', 'PPH'],
-    ['Prestige Regional Manager', 'PRM'],
-    ['Prestige Manager', 'PM'],
+    ['Project General Manager', 'PGM'],
+    ['Project Assistant General Manager', 'PAGM'],
+    ['Project Provincial Head', 'PPH'],
+    ['Project Regional Manager', 'PRM'],
+    ['Project Manager', 'PM'],
   ])('maps %s → %s', (name, code) => {
     expect(ROLE_NAME_TO_CODE[name]).toBe(code);
   });
@@ -98,6 +98,14 @@ describe('ROLE_NAME_TO_CODE', () => {
   });
 });
 
+describe('Coordinator', () => {
+  it('is a non-target role with a 35,000 basic and no allowance', () => {
+    expect(ROLE_NAME_TO_CODE['Coordinator']).toBe('COORD');
+    expect(ROLE_SALARIES['Coordinator']).toBe(35_000);
+    expect(ROLE_ALLOWANCES['Coordinator']).toBe(0);
+  });
+});
+
 describe('ROLE_ALLOWANCES', () => {
   it('basic + allowance matches the official Category B totals', () => {
     const totals: Record<string, number> = {
@@ -107,6 +115,7 @@ describe('ROLE_ALLOWANCES', () => {
       'Cabana Project Manager': 150_000, 'Network & IT Manager': 100_000, 'Head of Micro Finance': 130_000,
       'Executive Micro Finance 1': 40_000, 'Executive Micro Finance 2': 40_000,
       'Micro Finance Unit Head': 240_000, 'Gemologist': 380_000, 'Executive Assistant Finance': 35_000,
+      'Coordinator': 35_000,
     };
     expect(Object.keys(ROLE_ALLOWANCES).sort()).toEqual(Object.keys(totals).sort());
     for (const [role, total] of Object.entries(totals)) {
@@ -114,7 +123,11 @@ describe('ROLE_ALLOWANCES', () => {
     }
   });
 
+  it('no sales role keeps the old "Prestige" name', () => {
+    expect(ROLES.filter((r) => r.startsWith('Prestige'))).toEqual([]);
+  });
+
   it('does not pre-fill allowances for sales roles', () => {
-    expect(ROLE_ALLOWANCES).not.toHaveProperty('Prestige General Manager');
+    expect(ROLE_ALLOWANCES).not.toHaveProperty('Project General Manager');
   });
 });

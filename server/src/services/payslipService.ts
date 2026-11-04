@@ -191,6 +191,9 @@ async function buildPayslipData(
       netSalary: p.netSalary || 0,
       achievementPct: p.achievementPct || 0,
       assignedTarget: p.assignedTarget || 0,
+      cycle: p.cycle || 0,
+      remainingTarget: p.remainingTarget || 0,
+      remainingSalary: p.remainingSalary || 0,
       createdAt: p.createdAt || new Date().toISOString(),
     };
   });
@@ -526,6 +529,9 @@ export async function generateSinglePdf(paysheetId: string): Promise<Buffer> {
     netSalary: paysheet.netSalary || 0,
     achievementPct: paysheet.achievementPct || 0,
     assignedTarget: paysheet.assignedTarget || 0,
+    cycle: paysheet.cycle || 0,
+    remainingTarget: paysheet.remainingTarget || 0,
+    remainingSalary: paysheet.remainingSalary || 0,
     createdAt: paysheet.createdAt || new Date().toISOString(),
   };
 

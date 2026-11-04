@@ -8,7 +8,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('../../services/paysheetService', () => ({
-  paysheetService: { createPaysheet: vi.fn(), updatePaysheet: vi.fn() },
+  paysheetService: { createPaysheet: vi.fn(), updatePaysheet: vi.fn(), calculatePaysheet: vi.fn() },
 }));
 vi.mock('../../services/userService', () => ({
   userService: { listUsers: vi.fn() },
@@ -23,6 +23,7 @@ import { MonthlyPaysheetForm } from '../../components/MonthlyPaysheetForm';
 const mockCreatePaysheet = paysheetService.createPaysheet as ReturnType<typeof vi.fn>;
 const mockUpdatePaysheet = paysheetService.updatePaysheet as ReturnType<typeof vi.fn>;
 const mockListUsers = userService.listUsers as ReturnType<typeof vi.fn>;
+const mockCalculatePaysheet = paysheetService.calculatePaysheet as ReturnType<typeof vi.fn>;
 const mockShowToast = showToast as ReturnType<typeof vi.fn>;
 
 const fakeUser = {
@@ -191,5 +192,54 @@ describe('MonthlyPaysheetForm — edit mode', () => {
     await waitFor(() => {
       expect(mockShowToast).toHaveBeenCalledWith('Update failed', 'error');
     });
+  });
+});
+
+describe('MonthlyPaysheetForm — remaining annual amounts', () => {
+  const salesUser = { ...fakeUser, codeNo: 'S001', role: 'Project Manager', designation: 'Project Manager' };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockListUsers.mockResolvedValue({ users: [fakeUser, salesUser] });
+    mockCalculatePaysheet.mockResolvedValue({
+      message: 'ok',
+      calculation: { remainingTarget: 16_500_000, remainingSalary: 1_650_000 },
+    });
+  });
+
+  it('shows the values for a sales employee as read-only fields, and does not submit them', async () => {
+    render(<MonthlyPaysheetForm />);
+    await waitFor(() => expect(mockListUsers).toHaveBeenCalled());
+    await screen.findByText(/Project Manager/, { selector: 'option[value="PM"]' });
+
+    fireEvent.change(screen.getByPlaceholderText('Enter employee code'), { target: { value: 'S001' } });
+
+    await waitFor(() => expect(mockCalculatePaysheet).toHaveBeenCalledWith(
+      expect.objectContaining({ codeNo: 'S001', role: 'PM', achieve: 0 })
+    ));
+
+    const target = screen.getByText('Remaining Target Annual Amount').parentElement!.querySelector('input')!;
+    const salary = screen.getByText('Remaining Annual Salary').parentElement!.querySelector('input')!;
+    await waitFor(() => expect(target.value).toMatch(/16,500,000\.00/));
+    expect(salary.value).toMatch(/1,650,000\.00/);
+    expect(target).toBeDisabled();
+    expect(salary).toBeDisabled();
+  });
+
+  it('does not show the values for a non-target employee', async () => {
+    render(<MonthlyPaysheetForm initialData={{ ...fakePaysheet, role: 'COORD' } as never} isEditMode />);
+    await waitFor(() => expect(mockListUsers).toHaveBeenCalled());
+    expect(screen.queryByText('Remaining Annual Salary')).not.toBeInTheDocument();
+    expect(mockCalculatePaysheet).not.toHaveBeenCalled();
+  });
+
+  it('falls back to a dash when the preview fails', async () => {
+    mockCalculatePaysheet.mockRejectedValue(new Error('nope'));
+    render(<MonthlyPaysheetForm />);
+    await screen.findByText(/Project Manager/, { selector: 'option[value="PM"]' });
+    fireEvent.change(screen.getByPlaceholderText('Enter employee code'), { target: { value: 'S001' } });
+    await waitFor(() => expect(mockCalculatePaysheet).toHaveBeenCalled());
+    const target = screen.getByText('Remaining Target Annual Amount').parentElement!.querySelector('input')!;
+    expect(target.value).toBe('—');
   });
 });

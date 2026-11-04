@@ -184,6 +184,11 @@ export function renderPayslipHTML(emp: PayslipEmployee): string {
     <span class="net-amt">${fmt(emp.netSalary)}</span>
   </div>
 
+  ${emp.isSalesRole && emp.cycle > 0 ? `
+  <div class="sh"><span>Remaining Target Annual Amount &amp; Remaining Annual Salary</span><span>Amount (Rs.)</span></div>
+  <div class="row"><span>Remaining Target Annual Amount</span><span class="amt">${fmt(emp.remainingTarget)}</span></div>
+  <div class="row alt"><span>Remaining Annual Salary</span><span class="amt">${fmt(emp.remainingSalary)}</span></div>` : ''}
+
   <div class="footer">
     This is a computer-generated document. No signature is required.
     &copy; ${new Date().getFullYear()} Prestige Glamour Working Capital Solutions (Pvt) Ltd.

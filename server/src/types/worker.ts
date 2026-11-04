@@ -31,6 +31,10 @@ export interface PayslipEmployee {
   netSalary: number;
   achievementPct: number;
   assignedTarget: number;
+  /** Sales (Category A): annual cycle number; 0 = no cycle data. */
+  cycle: number;
+  remainingTarget: number;
+  remainingSalary: number;
   createdAt: string;
 }
 

@@ -37,7 +37,7 @@ import { makeUser, makePaysheet, TEST_USER_CODE } from './helpers/fixtures';
 let app: FastifyInstance;
 let token: string;
 
-const VALID_ROLE = 'PRM'; // Prestige Regional Manager — valid role code
+const VALID_ROLE = 'PRM'; // Project Regional Manager — valid role code
 
 beforeAll(async () => {
   app = await buildTestApp();

@@ -10,6 +10,8 @@ export const TOTAL_MINUTES_PER_MONTH = 12_000; // 25 × 8 × 60
 export const EPF_EMPLOYEE_RATE = 0.08;
 export const EPF_EMPLOYER_RATE = 0.12;
 export const ETF_RATE = 0.03;
+/** Category A: share of the month's target from which EPF uses the role's fixed value. */
+export const EPF_FIXED_VALUE_MIN_ACHIEVEMENT = 0.25;
 
 // ── Role categories ──────────────────────────────────────────
 export const JOB_ROLE_CATEGORIES = {
@@ -19,11 +21,11 @@ export const JOB_ROLE_CATEGORIES = {
 
 // ── Category A roles (sales — annual-cycle salary system) ────
 export const SALES_BASED_ROLES = {
-  PGM: "Prestige General Manager",
-  PAGM: "Prestige Assistant General Manager",
-  PPH: "Prestige Provincial Head",
-  PRM: "Prestige Regional Manager",
-  PM: "Prestige Manager",
+  PGM: "Project General Manager",
+  PAGM: "Project Assistant General Manager",
+  PPH: "Project Provincial Head",
+  PRM: "Project Regional Manager",
+  PM: "Project Manager",
 } as const;
 export type SalesRole = keyof typeof SALES_BASED_ROLES;
 
@@ -46,6 +48,7 @@ export const NON_TARGET_ROLES = {
   MICRO_FIN_UNIT_HEAD: "Micro Finance Unit Head",
   GEMO: "Gemologist",
   EXEC_ASST_FIN: "Executive Assistant Finance",
+  COORD: "Coordinator",
 } as const;
 export type NonTargetRole = keyof typeof NON_TARGET_ROLES;
 
@@ -57,14 +60,16 @@ export interface SalesRoleConfig {
   monthlyTarget: number;
   annualSalary: number;
   monthlySalary: number;
+  /** Fixed value EPF (employee 8%) is taken on when the month's achievement is 25% or more. */
+  epfFixedValue: number;
 }
 
 export const SALES_CONFIG: Record<SalesRole, SalesRoleConfig> = {
-  PGM:  { role: "PGM",  label: "Prestige General Manager",           annualTarget: 8_100_000_000, monthlyTarget: 675_000_000, annualSalary: 8_400_000, monthlySalary: 700_000 },
-  PAGM: { role: "PAGM", label: "Prestige Assistant General Manager", annualTarget: 2_700_000_000, monthlyTarget: 225_000_000, annualSalary: 7_500_000, monthlySalary: 625_000 },
-  PPH:  { role: "PPH",  label: "Prestige Provincial Head",           annualTarget:   900_000_000, monthlyTarget:  75_000_000, annualSalary: 6_600_000, monthlySalary: 550_000 },
-  PRM:  { role: "PRM",  label: "Prestige Regional Manager",          annualTarget:   180_000_000, monthlyTarget:  15_000_000, annualSalary: 4_200_000, monthlySalary: 350_000 },
-  PM:   { role: "PM",   label: "Prestige Manager",                   annualTarget:    18_000_000, monthlyTarget:   1_500_000, annualSalary: 1_800_000, monthlySalary: 150_000 },
+  PGM:  { role: "PGM",  label: "Project General Manager",           annualTarget: 8_100_000_000, monthlyTarget: 675_000_000, annualSalary: 8_400_000, monthlySalary: 700_000, epfFixedValue: 175_000 },
+  PAGM: { role: "PAGM", label: "Project Assistant General Manager", annualTarget: 2_700_000_000, monthlyTarget: 225_000_000, annualSalary: 7_500_000, monthlySalary: 625_000, epfFixedValue: 156_250 },
+  PPH:  { role: "PPH",  label: "Project Provincial Head",           annualTarget:   900_000_000, monthlyTarget:  75_000_000, annualSalary: 6_600_000, monthlySalary: 550_000, epfFixedValue: 137_500 },
+  PRM:  { role: "PRM",  label: "Project Regional Manager",          annualTarget:   180_000_000, monthlyTarget:  15_000_000, annualSalary: 4_200_000, monthlySalary: 350_000, epfFixedValue:  87_500 },
+  PM:   { role: "PM",   label: "Project Manager",                   annualTarget:    18_000_000, monthlyTarget:   1_500_000, annualSalary: 1_800_000, monthlySalary: 150_000, epfFixedValue:  37_500 },
 };
 
 // ── Category A annual-cycle state ────────────────────────────
@@ -149,6 +154,7 @@ export const NON_TARGET_CONFIG: Record<NonTargetRole, NonTargetRoleConfig> = {
   MICRO_FIN_UNIT_HEAD: { label: "Micro Finance Unit Head",     basicSalary:  80_000, fixedAllowance: 160_000 },
   GEMO:                { label: "Gemologist",                  basicSalary: 200_000, vehicleAllowance: 100_000, fuelAllowance: 80_000 },
   EXEC_ASST_FIN:       { label: "Executive Assistant Finance", basicSalary:  35_000 },
+  COORD:               { label: "Coordinator",                 basicSalary:  35_000 },
 };
 
 // ── Paysheet calculation input/output types ──────────────────
@@ -381,6 +387,23 @@ export function calculateEPF(
   };
 }
 
+/**
+ * Category A employee EPF (8%), by how much of this month's target was achieved:
+ *   25% or more -> 8% of the role's fixed value
+ *   below 25%   -> 8% of the salary actually earned
+ */
+export function calculateSalesEPFEmployee(
+  config: SalesRoleConfig,
+  actualAchievement: number,
+  monthTarget: number,
+  achievedSalary: number,
+  epfAvailability: boolean
+): number {
+  if (!epfAvailability) return 0;
+  const reachedFixedValue = actualAchievement >= monthTarget * EPF_FIXED_VALUE_MIN_ACHIEVEMENT;
+  return (reachedFixedValue ? config.epfFixedValue : achievedSalary) * EPF_EMPLOYEE_RATE;
+}
+
 /** ETF — employer cost only, NOT deducted from net */
 export function calculateETF(achievedSalary: number, epfAvailability: boolean): number {
   return epfAvailability ? achievedSalary * ETF_RATE : 0;
@@ -413,10 +436,13 @@ export function calculatePaysheet(input: PaysheetInput): PaysheetResult {
     const nopayDeduction = calculateNoPayDeduction(input.nopayDays, basicSalary);
     const lateDeduction = calculateLateDeduction(input.lateHours, input.lateMinutes, basicSalary);
     const epf = calculateEPF(achievedSalary, input.epfAvailability);
+    const epfEmployee = calculateSalesEPFEmployee(
+      saleConfig, cycle.actualAchievement, cycle.adjustedTarget, achievedSalary, input.epfAvailability
+    );
     const etf = calculateETF(achievedSalary, input.epfAvailability);
     const welfare = input.others || 0;
     const customDeductionAmount = input.customDeductionAmount || 0;
-    const netSalary = grossSalary - (nopayDeduction + lateDeduction + epf.employee + welfare + customDeductionAmount);
+    const netSalary = grossSalary - (nopayDeduction + lateDeduction + epfEmployee + welfare + customDeductionAmount);
 
     return {
       basicSalary,
@@ -432,7 +458,7 @@ export function calculatePaysheet(input: PaysheetInput): PaysheetResult {
       grossSalary,
       nopayDeduction,
       lateDeduction,
-      epfEmployee: epf.employee,
+      epfEmployee,
       epfEmployer: epf.employer,
       etf,
       welfare,

@@ -144,4 +144,28 @@ describe('PaySheet component', () => {
     render(<PaySheet paysheet={fakePaysheet} />);
     expect(screen.getByText('Basic Offers')).toBeInTheDocument();
   });
+
+  it('Basic Offers shows the basic salary, not the gross', () => {
+    const ps = { ...fakePaysheet, basicSalary: 35_000, achievedSalary: 40_000, grossSalary: 40_000, generalAllowance: 5_000, vehicleAllowance: 0, fuelAllowance: 0 };
+    render(<PaySheet paysheet={ps} />);
+    expect(screen.getByText('Basic Offers').nextSibling).toHaveTextContent('Rs.35000');
+    expect(screen.getByText('GROSS OFFERS').nextSibling).toHaveTextContent('Rs.40000');
+  });
+
+  it('shows the remaining annual amounts for sales roles', () => {
+    render(<PaySheet paysheet={{ ...fakePaysheet, role: 'PM', cycle: 1, remainingTarget: 16_500_000, remainingSalary: 0 }} />);
+    expect(screen.getByText('Remaining Target Annual Amount & Remaining Annual Salary')).toBeInTheDocument();
+    expect(screen.getByText('Remaining Target Annual Amount').nextSibling).toHaveTextContent('Rs.16500000');
+    expect(screen.getByText('Remaining Annual Salary').nextSibling).toHaveTextContent('Rs.0');
+  });
+
+  it('hides the remaining annual amounts for non-target roles', () => {
+    render(<PaySheet paysheet={{ ...fakePaysheet, cycle: 0 }} />);
+    expect(screen.queryByText('Remaining Annual Salary')).not.toBeInTheDocument();
+  });
+
+  it('hides the remaining annual amounts on sales paysheets with no cycle data', () => {
+    render(<PaySheet paysheet={{ ...fakePaysheet, role: 'PM', cycle: 0 }} />);
+    expect(screen.queryByText('Remaining Annual Salary')).not.toBeInTheDocument();
+  });
 });

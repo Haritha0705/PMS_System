@@ -218,11 +218,17 @@ export function buildBreakdownRows(ps: MonthlyPaysheet): BreakdownRow[] {
     result: lateDed > 0 ? `− ${rs(lateDed)}` : '0.00',
   });
 
+  // Read from the saved amount so paysheets saved before the fixed values still explain themselves
+  const salesFixedValue = sales ? SALES_CONFIG[role].epfFixedValue : 0;
+  const epfFixedValue = sales && Math.abs(epfEmp - salesFixedValue * EPF_EMPLOYEE_RATE) < 0.01 ? salesFixedValue : null;
+
   rows.push({
     kind: 'deduction', step: `EPF — Employee (${(EPF_EMPLOYEE_RATE * 100).toFixed(0)}%)`,
-    formula: ps.epfAvailability
-      ? `${sales ? rs(achieved) : rs(basic)} × ${(EPF_EMPLOYEE_RATE * 100).toFixed(0)}%   (calculated on ${sales ? 'salary earned' : 'basic salary only'})`
-      : 'EPF not enrolled → Rs. 0',
+    formula: !ps.epfAvailability
+      ? 'EPF not enrolled → Rs. 0'
+      : epfFixedValue !== null
+        ? `${rs(epfFixedValue)} × ${(EPF_EMPLOYEE_RATE * 100).toFixed(0)}%   (fixed value for the role — achievement 25% or more)`
+        : `${sales ? rs(achieved) : rs(basic)} × ${(EPF_EMPLOYEE_RATE * 100).toFixed(0)}%   (calculated on ${sales ? 'salary earned' : 'basic salary only'})`,
     result: epfEmp > 0 ? `− ${rs(epfEmp)}` : '0.00',
   });
 

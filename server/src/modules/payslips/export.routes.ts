@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyReply } from 'fastify';
 import archiver from 'archiver';
 import { z } from 'zod';
 import { dbGetAllUsers, dbGetAllPaysheets, dbGetPaysheetsByMonth } from '../../services/dbStore';
+import { isSalesRole } from '../../engine/salary-calculator';
 
 const payMonthQuerySchema = z.object({
   payMonth: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'payMonth must be in YYYY-MM format'),
@@ -134,7 +135,7 @@ export default async function exportRoutes(fastify: FastifyInstance): Promise<vo
             achieve: record.achieve || 0, achievementPct: record.achievementPct || 0,
           },
           earnings: {
-            basicOffers: record.achieve || 0, vehicleAllowance: record.vehicleAllowance || 0,
+            basicOffers: (isSalesRole(record.role) ? record.achievedSalary : record.basicSalary) || 0, vehicleAllowance: record.vehicleAllowance || 0,
             fuelAllowance: record.fuelAllowance || 0, generalAllowance: record.generalAllowance || 0,
             orc: record.orc || 0, otherOffer: record.otherOffer || 0,
             customEarningName: record.customEarningName || '', customEarningAmount: record.customEarningAmount || 0,

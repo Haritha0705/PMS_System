@@ -14,8 +14,10 @@ interface PaySheetProps {
 export default function PaySheet({ paysheet, employee, size = 'a5' }: PaySheetProps) {
   // a5 = 420×595px, a4 = 595×842px, 2up = 561×794px (fills 148.5×210mm print slot)
   const scale = size === 'a4' ? 1.42 : size === '2up' ? 1.335 : 1;
+  const sales = isSalesRole(paysheet.role);
   const earnings = {
-    basicSalary: paysheet.achievedSalary || 0,
+    // Sales: salary earned this month. Non-target: basic only (achievedSalary also holds the allowances).
+    basicSalary: (sales ? paysheet.achievedSalary : paysheet.basicSalary) || 0,
     vehicleAllowance: paysheet.vehicleAllowance || 0,
     fuelAllowance: paysheet.fuelAllowance || 0,
     otherOffers: paysheet.otherOffer || 0,
@@ -146,7 +148,7 @@ export default function PaySheet({ paysheet, employee, size = 'a5' }: PaySheetPr
 
       {/* ── EARNINGS ── */}
       <SectionHdr left="EARNINGS" right="AMOUNT (Rs.)" ds={ds} />
-      <DataItem label={isSalesRole(paysheet.role) ? 'Salary Earned' : 'Basic Offers'} amount={earnings.basicSalary} ds={ds} />
+      <DataItem label={sales ? 'Salary Earned' : 'Basic Offers'} amount={earnings.basicSalary} ds={ds} />
       {earnings.vehicleAllowance > 0 && (
         <DataItem label="Vehicle Offer" amount={earnings.vehicleAllowance} ds={ds} alt />
       )}
@@ -185,6 +187,15 @@ export default function PaySheet({ paysheet, employee, size = 'a5' }: PaySheetPr
         <span style={ds.netAmount}>{formatCurrency(netSalary)}</span>
       </div>
 
+      {/* ── REMAINING ANNUAL AMOUNTS (sales roles with cycle data) ── */}
+      {sales && (paysheet.cycle ?? 0) > 0 && (
+        <>
+          <SectionHdr left="Remaining Target Annual Amount & Remaining Annual Salary" right="AMOUNT (Rs.)" ds={ds} />
+          <DataItem label="Remaining Target Annual Amount" amount={paysheet.remainingTarget || 0} ds={ds} />
+          <DataItem label="Remaining Annual Salary" amount={paysheet.remainingSalary || 0} ds={ds} alt />
+        </>
+      )}
+
       {/* ── FOOTER ── */}
       <div style={ds.footer}>
         This is a computer-generated document. No signature is required.
@@ -209,7 +220,7 @@ function SectionHdr({ left, right, ds }: { left: string; right: string; ds: Reco
   return (
     <div style={ds.sectionHeader}>
       <span style={ds.sectionHeaderText}>{left}</span>
-      <span style={ds.sectionHeaderText}>{right}</span>
+      <span style={{ ...ds.sectionHeaderText, flexShrink: 0, whiteSpace: 'nowrap', marginLeft: 8 }}>{right}</span>
     </div>
   );
 }

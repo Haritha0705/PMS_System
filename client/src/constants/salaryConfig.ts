@@ -14,6 +14,8 @@ export interface SalesRoleConfig {
   monthlyTarget: number;
   annualSalary: number;
   monthlySalary: number;
+  /** Fixed value EPF (employee 8%) is taken on when the month's achievement is 25% or more. */
+  epfFixedValue: number;
 }
 
 export interface NonTargetRoleConfig {
@@ -28,11 +30,11 @@ export interface NonTargetRoleConfig {
 }
 
 export const SALES_CONFIG: Record<string, SalesRoleConfig> = {
-  PGM:  { role: 'PGM',  label: 'Prestige General Manager',           annualTarget: 8_100_000_000, monthlyTarget: 675_000_000, annualSalary: 8_400_000, monthlySalary: 700_000 },
-  PAGM: { role: 'PAGM', label: 'Prestige Assistant General Manager', annualTarget: 2_700_000_000, monthlyTarget: 225_000_000, annualSalary: 7_500_000, monthlySalary: 625_000 },
-  PPH:  { role: 'PPH',  label: 'Prestige Provincial Head',           annualTarget:   900_000_000, monthlyTarget:  75_000_000, annualSalary: 6_600_000, monthlySalary: 550_000 },
-  PRM:  { role: 'PRM',  label: 'Prestige Regional Manager',          annualTarget:   180_000_000, monthlyTarget:  15_000_000, annualSalary: 4_200_000, monthlySalary: 350_000 },
-  PM:   { role: 'PM',   label: 'Prestige Manager',                   annualTarget:    18_000_000, monthlyTarget:   1_500_000, annualSalary: 1_800_000, monthlySalary: 150_000 },
+  PGM:  { role: 'PGM',  label: 'Project General Manager',           annualTarget: 8_100_000_000, monthlyTarget: 675_000_000, annualSalary: 8_400_000, monthlySalary: 700_000, epfFixedValue: 175_000 },
+  PAGM: { role: 'PAGM', label: 'Project Assistant General Manager', annualTarget: 2_700_000_000, monthlyTarget: 225_000_000, annualSalary: 7_500_000, monthlySalary: 625_000, epfFixedValue: 156_250 },
+  PPH:  { role: 'PPH',  label: 'Project Provincial Head',           annualTarget:   900_000_000, monthlyTarget:  75_000_000, annualSalary: 6_600_000, monthlySalary: 550_000, epfFixedValue: 137_500 },
+  PRM:  { role: 'PRM',  label: 'Project Regional Manager',          annualTarget:   180_000_000, monthlyTarget:  15_000_000, annualSalary: 4_200_000, monthlySalary: 350_000, epfFixedValue:  87_500 },
+  PM:   { role: 'PM',   label: 'Project Manager',                   annualTarget:    18_000_000, monthlyTarget:   1_500_000, annualSalary: 1_800_000, monthlySalary: 150_000, epfFixedValue:  37_500 },
 };
 
 export const NON_TARGET_CONFIG: Record<string, NonTargetRoleConfig> = {
@@ -53,6 +55,7 @@ export const NON_TARGET_CONFIG: Record<string, NonTargetRoleConfig> = {
   MICRO_FIN_UNIT_HEAD: { label: 'Micro Finance Unit Head',     basicSalary:  80_000, fixedAllowance: 160_000 },
   GEMO:                { label: 'Gemologist',                  basicSalary: 200_000, vehicleAllowance: 100_000, fuelAllowance: 80_000 },
   EXEC_ASST_FIN:       { label: 'Executive Assistant Finance', basicSalary:  35_000 },
+  COORD:               { label: 'Coordinator',                 basicSalary:  35_000 },
 };
 
 export function isSalesRole(role: string): boolean {

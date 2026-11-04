@@ -194,6 +194,7 @@ describe('Category B role table (no inputs, no deductions)', () => {
     MICRO_FIN_UNIT_HEAD: { basic:  80_000, total: 240_000 },
     GEMO:                { basic: 200_000, total: 380_000 },
     EXEC_ASST_FIN:       { basic:  35_000, total:  35_000 },
+    COORD:               { basic:  35_000, total:  35_000 },
   };
 
   it('covers every non-target role in the engine', () => {
@@ -219,4 +220,18 @@ describe('Category B role table (no inputs, no deductions)', () => {
       expect(near(r.netSalary, total - basic * 0.08)).toBe(true);
     });
   }
+});
+
+// ── Coordinator (Cat B) ──────────────────────────────────────────────────────
+
+describe('COORD — Coordinator', () => {
+  const r = calculatePaysheet({
+    role: getRoleConfig('COORD')!, nopayDays: 0, lateHours: 0, lateMinutes: 0, epfAvailability: true,
+  });
+
+  it('is a non-target role', () => expect(isSalesRole('COORD')).toBe(false));
+  it('basic = 35,000', () => expect(r.basicSalary).toBe(35_000));
+  it('gross = 35,000', () => expect(r.grossSalary).toBe(35_000));
+  it('EPF = 8% of basic = 2,800', () => expect(r.epfEmployee).toBeCloseTo(2_800, 2));
+  it('net = 32,200', () => expect(r.netSalary).toBeCloseTo(32_200, 2));
 });
