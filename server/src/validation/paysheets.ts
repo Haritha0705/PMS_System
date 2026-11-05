@@ -8,9 +8,11 @@ export const ALL_ROLE_CODES = [
   'PGM', 'PAGM', 'PPH', 'PRM', 'PM',
   // Non-target (Category B)
   'SR_EXEC_HR', 'JR_EXEC_HR', 'ADMIN_MANAGER', 'LEGAL_MANAGER',
+  'LAND_DEVELOPMENT_1', 'LAND_DEVELOPMENT_2',
+  'SUPERVISOR_LAND_1', 'SUPERVISOR_LAND_2', 'WATCHER_LAND',
   'EXEC_ASST_HR', 'EXEC_ASST_LAND', 'EXEC_GEM_1', 'EXEC_GEM_2', 'EXEC_MEDIA',
   'CABANA_PM', 'NETWORK_IT_MANAGER', 'HEAD_MICRO_FIN',
-  'EXEC_MICRO_FIN_1', 'EXEC_MICRO_FIN_2', 'MICRO_FIN_UNIT_HEAD',
+  'EXEC_MICRO_FIN_1', 'EXEC_MICRO_FIN_2',
   'GEMO', 'EXEC_ASST_FIN', 'COORD',
 ] as const;
 
@@ -28,33 +30,31 @@ const payMonthSchema = z
   .string()
   .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'payMonth must be YYYY-MM format');
 
+// Well inside the database columns, including after amounts are added together
 const moneySchema = z
   .number()
-  .min(0, 'Cannot be negative');
+  .min(0, 'Cannot be negative')
+  .max(999_999_999.99, 'Amount is too large');
+
+const achieveSchema = z
+  .number()
+  .min(0, 'Cannot be negative')
+  .max(99_999_999_999.99, 'Amount is too large');
 
 const daysSchema = z
   .number()
   .min(0)
   .max(31, 'Cannot exceed 31 days');
 
-const hoursSchema = z.number().int().min(0);
+const hoursSchema = z.number().int().min(0).max(744, 'Cannot exceed 744 hours in a month');
 
 const minutesSchema = z.number().int().min(0).max(59, 'Minutes must be 0–59');
 
 const mosSchema = z
   .number()
   .int('monthsOfService must be a whole number')
-  .min(0, 'monthsOfService must be 0 or greater');
-
-// Custom-field pair: amount > 0 requires a name
-const customFieldPair = (nameProp: string, amountProp: string) =>
-  z.object({
-    [nameProp]:   z.string().max(200).default(''),
-    [amountProp]: moneySchema.default(0),
-  }).refine(
-    (d) => (d[amountProp] as number) === 0 || ((d[nameProp] as string).trim().length > 0),
-    { message: `${nameProp} is required when ${amountProp} is set`, path: [nameProp] }
-  );
+  .min(0, 'monthsOfService must be 0 or greater')
+  .max(1200, 'monthsOfService is too large');
 
 // ── Calculate (preview, no save) ──────────────────────────────
 
@@ -65,7 +65,7 @@ export const calculatePaysheetSchema = z.object({
   payMonth:             payMonthSchema.optional(),
   /** Legacy — no longer used in any calculation. */
   monthsOfService:      mosSchema.default(0),
-  achieve:              moneySchema.default(0),
+  achieve:              achieveSchema.default(0),
   allowance:            moneySchema.default(0),
   nopay:                daysSchema.default(0),
   lateHours:            hoursSchema.default(0),
@@ -93,7 +93,7 @@ export const createPaysheetSchema = z.object({
   role:                 roleCodeSchema,
   /** Legacy — no longer used in any calculation. */
   monthsOfService:      mosSchema.default(0),
-  achieve:              moneySchema.default(0),
+  achieve:              achieveSchema.default(0),
   allowance:            moneySchema.default(0),
   nopay:                daysSchema.default(0),
   lateHours:            hoursSchema.default(0),
@@ -118,7 +118,7 @@ export const createPaysheetSchema = z.object({
 
 export const updatePaysheetSchema = z.object({
   monthsOfService:       mosSchema.optional(),
-  achieve:               moneySchema.optional(),
+  achieve:               achieveSchema.optional(),
   allowance:             moneySchema.optional(),
   nopay:                 daysSchema.optional(),
   lateHours:             hoursSchema.optional(),

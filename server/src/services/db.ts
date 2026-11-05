@@ -1,6 +1,7 @@
 import { neon, neonConfig, NeonQueryFunction } from '@neondatabase/serverless';
 import ws from 'ws';
 import logger from '../utils/logger';
+import { ENV } from '../config/env';
 
 neonConfig.webSocketConstructor = ws;
 
@@ -8,7 +9,7 @@ let sql: NeonQueryFunction<false, false> | null = null;
 
 export function getDb(): NeonQueryFunction<false, false> {
   if (!sql) {
-    const dbUrl = 'postgresql://neondb_owner:npg_3UeVGMk6lDEF@ep-delicate-water-ahwvsfhl-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+    const dbUrl = ENV.DATABASE_URL;
     if (!dbUrl) {
       throw new Error('DATABASE_URL environment variable is not set. A database connection is required.');
     }

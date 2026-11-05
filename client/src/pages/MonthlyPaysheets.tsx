@@ -56,10 +56,7 @@ export default function MonthlyPaysheets() {
     setPreviewPaysheet(paysheet);
     setPreviewEmployee(null);
     try {
-      const res = await userService.listUsers({ search: paysheet.codeNo, limit: 1 });
-      if (res.users.length > 0) {
-        setPreviewEmployee(res.users[0]);
-      }
+      setPreviewEmployee(await userService.getUser(paysheet.codeNo));
     } catch {
       // Employee lookup failed — preview still works without employee details
     }

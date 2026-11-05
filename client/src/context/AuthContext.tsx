@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import api from '../services/api';
-import { setAccessToken, getRefreshToken, saveRefreshToken, deleteRefreshToken } from '../services/api';
+import { setAccessToken, getRefreshToken, saveRefreshToken, deleteRefreshToken, refreshSession } from '../services/api';
 import type { LoginResponse } from '../types';
 
 interface AuthUser {
@@ -15,7 +15,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,14 +32,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async function restoreSession() {
       try {
-        const refreshToken = getRefreshToken();
-        if (!refreshToken) return;
+        if (!getRefreshToken()) return;
 
-        // Exchange refresh token for a new access token
-        const { data } = await api.post<{ accessToken: string }>('/auth/refresh', { refreshToken });
+        // Exchange refresh token for new tokens (saved by refreshSession)
+        await refreshSession();
         if (cancelled) return;
-
-        setAccessToken(data.accessToken);
 
         // Fetch current user info
         const meRes = await api.get<AuthUser>('/auth/me');
@@ -77,7 +74,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     try {
       // Revoke refresh token server-side
-      await api.post('/auth/logout');
+      const refreshToken = getRefreshToken();
+      if (refreshToken) await api.post('/auth/logout', { refreshToken });
     } catch {
       // Server unreachable — still clear local state
     }
@@ -94,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- context hook only slows hot reload in development
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (!context) throw new Error('useAuth must be used within AuthProvider');

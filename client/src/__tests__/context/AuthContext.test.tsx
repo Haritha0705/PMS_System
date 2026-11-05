@@ -9,7 +9,7 @@ import { render, screen, act, waitFor } from '@testing-library/react';
 import { useState } from 'react';
 import userEvent from '@testing-library/user-event';
 import { AuthProvider, useAuth } from '../../context/AuthContext';
-import api, { setAccessToken, getRefreshToken, saveRefreshToken, deleteRefreshToken } from '../../services/api';
+import api, { setAccessToken, getRefreshToken, saveRefreshToken, deleteRefreshToken, refreshSession } from '../../services/api';
 
 vi.mock('../../services/api', () => {
   const mockSetAccessToken = vi.fn();
@@ -28,6 +28,7 @@ vi.mock('../../services/api', () => {
     getRefreshToken: vi.fn(() => null),
     saveRefreshToken: vi.fn(),
     deleteRefreshToken: vi.fn(),
+    refreshSession: vi.fn(),
   };
 });
 
@@ -36,6 +37,7 @@ const mockSetAccessToken = setAccessToken as ReturnType<typeof vi.fn>;
 const mockGetRefreshToken = getRefreshToken as unknown as ReturnType<typeof vi.fn>;
 const mockSaveRefreshToken = saveRefreshToken as unknown as ReturnType<typeof vi.fn>;
 const mockDeleteRefreshToken = deleteRefreshToken as unknown as ReturnType<typeof vi.fn>;
+const mockRefreshSession = refreshSession as unknown as ReturnType<typeof vi.fn>;
 
 // Helper to consume auth context in a component
 function AuthConsumer() {
@@ -79,7 +81,7 @@ describe('AuthProvider — session restore', () => {
 
   it('restores session when valid refresh token exists', async () => {
     mockGetRefreshToken.mockReturnValue('valid-refresh-token');
-    mockApi.post.mockResolvedValue({ data: { accessToken: 'new-access-token' } });
+    mockRefreshSession.mockResolvedValue('new-access-token');
     mockApi.get.mockResolvedValue({ data: { username: 'admin', name: 'Super Admin', role: 'super_admin' } });
 
     renderWithAuth();
@@ -88,12 +90,12 @@ describe('AuthProvider — session restore', () => {
       expect(screen.getByTestId('username').textContent).toBe('admin');
     });
     expect(screen.getByTestId('authenticated').textContent).toBe('true');
-    expect(mockSetAccessToken).toHaveBeenCalledWith('new-access-token');
+    expect(mockRefreshSession).toHaveBeenCalled();
   });
 
   it('stays logged out when refresh token exchange fails', async () => {
     mockGetRefreshToken.mockReturnValue('expired-token');
-    mockApi.post.mockRejectedValue(new Error('Token expired'));
+    mockRefreshSession.mockRejectedValue(new Error('Token expired'));
 
     renderWithAuth();
 
@@ -181,9 +183,8 @@ describe('AuthProvider — logout', () => {
   it('clears user and deletes refresh token', async () => {
     // Setup: already logged in
     mockGetRefreshToken.mockReturnValue('valid-refresh-token');
-    mockApi.post
-      .mockResolvedValueOnce({ data: { accessToken: 'new-access-token' } }) // refresh
-      .mockResolvedValueOnce({ data: {} }); // logout
+    mockRefreshSession.mockResolvedValue('new-access-token');
+    mockApi.post.mockResolvedValueOnce({ data: {} }); // logout
     mockApi.get.mockResolvedValue({ data: { username: 'admin', name: 'Super Admin', role: 'super_admin' } });
 
     renderWithAuth();
@@ -197,13 +198,14 @@ describe('AuthProvider — logout', () => {
     expect(screen.getByTestId('username').textContent).toBe('none');
     expect(mockSetAccessToken).toHaveBeenCalledWith(null);
     expect(mockDeleteRefreshToken).toHaveBeenCalled();
+    // The server can only end the session if it is told which token to revoke
+    expect(mockApi.post).toHaveBeenCalledWith('/auth/logout', { refreshToken: 'valid-refresh-token' });
   });
 
   it('still clears local state even if server logout fails', async () => {
     mockGetRefreshToken.mockReturnValue('valid-refresh-token');
-    mockApi.post
-      .mockResolvedValueOnce({ data: { accessToken: 'new-access-token' } })
-      .mockRejectedValueOnce(new Error('Server unreachable'));
+    mockRefreshSession.mockResolvedValue('new-access-token');
+    mockApi.post.mockRejectedValueOnce(new Error('Server unreachable'));
     mockApi.get.mockResolvedValue({ data: { username: 'admin', name: 'Super Admin', role: 'super_admin' } });
 
     renderWithAuth();

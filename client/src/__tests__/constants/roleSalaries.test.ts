@@ -35,8 +35,13 @@ describe('ROLE_SALARIES', () => {
   });
 
   it('contains Category B (non-target) roles', () => {
-    expect(ROLE_SALARIES['Admin Manager']).toBe(75_000);
-    expect(ROLE_SALARIES['Micro Finance Unit Head']).toBe(80_000);
+    expect(ROLE_SALARIES['Admin Manager']).toBe(65_000);
+    expect(ROLE_SALARIES['Land development 1']).toBe(200_000);
+    expect(ROLE_SALARIES['Land development 2']).toBe(150_000);
+    expect(ROLE_SALARIES['Micro Finance Unit Head']).toBeUndefined();
+    expect(ROLE_SALARIES['supervisor land 1']).toBe(85_000);
+    expect(ROLE_SALARIES['supervisor land 2']).toBe(40_000);
+    expect(ROLE_SALARIES['watcher land']).toBe(45_000);
     expect(ROLE_SALARIES['Gemologist']).toBe(200_000);
   });
 
@@ -114,8 +119,9 @@ describe('ROLE_ALLOWANCES', () => {
       'Executive Gem 1': 40_000, 'Executive Gem 2': 35_000, 'Executive Media': 40_000,
       'Cabana Project Manager': 150_000, 'Network & IT Manager': 100_000, 'Head of Micro Finance': 130_000,
       'Executive Micro Finance 1': 40_000, 'Executive Micro Finance 2': 40_000,
-      'Micro Finance Unit Head': 240_000, 'Gemologist': 380_000, 'Executive Assistant Finance': 35_000,
-      'Coordinator': 35_000,
+      'Gemologist': 380_000, 'Executive Assistant Finance': 35_000,
+      'Coordinator': 35_000, 'Land development 1': 200_000, 'Land development 2': 150_000,
+      'supervisor land 1': 85_000, 'supervisor land 2': 40_000, 'watcher land': 45_000,
     };
     expect(Object.keys(ROLE_ALLOWANCES).sort()).toEqual(Object.keys(totals).sort());
     for (const [role, total] of Object.entries(totals)) {

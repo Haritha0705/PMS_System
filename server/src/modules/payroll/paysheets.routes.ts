@@ -5,7 +5,7 @@ import {
   dbCreatePaysheet, dbCreateManyPaysheets, dbUpdatePaysheet, dbUpdatePaysheetStatus,
   dbDeletePaysheet, dbGetAllPaysheets, dbGetPaysheetsByMonth, dbGetPaysheet,
 } from '../../services/dbStore';
-import { cacheGet, cacheSet, cacheDel, cacheInvalidatePrefix, CK } from '../../services/cache';
+import { cacheGet, cacheSet, cacheInvalidatePrefix, CK } from '../../services/cache';
 import { MonthlyPaysheetDTO } from '../../models';
 import {
   calculatePaysheet,

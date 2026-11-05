@@ -61,8 +61,8 @@ describe('Category B — ADMIN_MANAGER (1 month, 0 otherOffer, with deductions)'
   });
 
   it('otherOffer = 0', () => expect(near(result.otherOffer ?? 0, 0)).toBe(true));
-  it('grossSalary = 80,000 (75K basic + 5K fixed allowance)', () => expect(near(result.grossSalary, 80_000)).toBe(true));
-  it('netSalary = 65,750', () => expect(near(result.netSalary, 65_750)).toBe(true));
+  it('grossSalary = 80,000 (65K basic + 15K fixed allowance)', () => expect(near(result.grossSalary, 80_000)).toBe(true));
+  it('netSalary = 67,650', () => expect(near(result.netSalary, 67_650)).toBe(true));
 });
 
 describe('Category B — SR_EXEC_HR (1 month, 10K otherOffer, 2 no-pay, 10h late)', () => {
@@ -176,9 +176,9 @@ describe('Edge — ADMIN_MANAGER zero otherOffer with heavy deductions', () => {
   it('netSalary still positive', () => expect(result.netSalary).toBeGreaterThan(0));
 });
 
-describe('Edge — MICRO_FIN_UNIT_HEAD very high otherOffer (30K)', () => {
+describe('Edge — HEAD_MICRO_FIN very high otherOffer (30K)', () => {
   const result = calculatePaysheet({
-    role: getRoleConfig('MICRO_FIN_UNIT_HEAD')!,
+    role: getRoleConfig('HEAD_MICRO_FIN')!,
     monthsOfService: 2,
     otherOffer: 30_000,
     nopayDays: 0,

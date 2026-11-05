@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FiSearch, FiEye, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { paysheetService } from '../services/paysheetService';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, currentMonth } from '../utils/format';
 import type { MonthlyPaysheet } from '../types';
 import { showToast } from './Toast';
 import { BRANCHES } from '../constants/branches';
@@ -20,7 +20,7 @@ interface PaysheetListProps {
 export function PaysheetList({ onEdit, onView, refreshTrigger }: PaysheetListProps) {
   const [paysheets, setPaysheets] = useState<MonthlyPaysheet[]>([]);
   const [loading, setLoading] = useState(false);
-  const [filterMonth, setFilterMonth] = useState<string>(new Date().toISOString().slice(0, 7));
+  const [filterMonth, setFilterMonth] = useState<string>(currentMonth());
   const [filterStatus, setFilterStatus] = useState<string>('active');
   const [filterBranch, setFilterBranch] = useState<string>('');
   const [filterRole, setFilterRole] = useState<string>('');
@@ -92,8 +92,8 @@ export function PaysheetList({ onEdit, onView, refreshTrigger }: PaysheetListPro
     try {
       await paysheetService.deletePaysheet(id);
       showToast('Paysheet deleted from database', 'success');
-      // Trigger a refresh via the prop if available, or locally
-      setPage(1); // Resetting page will trigger the useEffect
+      setPage(1);
+      setLocalRefresh((r) => r + 1); // Page 1 stays page 1, so ask for a reload too
     } catch (error: unknown) {
       showToast(error instanceof Error ? error.message : 'Failed to delete paysheet', 'error');
     }
@@ -159,7 +159,7 @@ export function PaysheetList({ onEdit, onView, refreshTrigger }: PaysheetListPro
         <button
           onClick={() => {
             setSearchText('');
-            setFilterMonth(new Date().toISOString().slice(0, 7));
+            setFilterMonth(currentMonth());
             setFilterStatus('active');
             setFilterBranch('');
             setFilterRole('');

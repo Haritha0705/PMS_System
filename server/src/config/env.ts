@@ -1,12 +1,6 @@
 // Centralised environment configuration
 // All env-var reads happen here; the rest of the app imports from this module.
 
-function require_env(key: string): string {
-  const val = process.env[key];
-  if (!val) throw new Error(`Missing required environment variable: ${key}`);
-  return val;
-}
-
 export const ENV = {
   // ── Server ──────────────────────────────────────────────────
   PORT: Number(process.env.PORT) || 4500,
@@ -16,9 +10,25 @@ export const ENV = {
   REDIS_URL: process.env.REDIS_URL || '',   // optional — in-memory fallback if not set
 
   // ── Database ─────────────────────────────────────────────────
-  DATABASE_URL:
-    process.env.DATABASE_URL ||
-    'postgresql://neondb_owner:npg_3UeVGMk6lDEF@ep-delicate-water-ahwvsfhl-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
+  // Set it in .env / the hosting settings. Never write the real value in code.
+  DATABASE_URL: process.env.DATABASE_URL || '',
+
+  // ── Proxy ────────────────────────────────────────────────────
+  // How many proxies sit in front of the server, so request.ip is the real
+  // visitor. Too low: all visitors share one login rate limit.
+  TRUST_PROXY_HOPS: process.env.TRUST_PROXY_HOPS
+    ? Number(process.env.TRUST_PROXY_HOPS)
+    : process.env.NODE_ENV === 'production' ? 1 : 0,
+
+  // ── Printing ─────────────────────────────────────────────────
+  // Printing goes to the printer attached to the server, so it is off on hosted servers.
+  SERVER_PRINT_ENABLED: process.env.SERVER_PRINT_ENABLED
+    ? process.env.SERVER_PRINT_ENABLED === 'true'
+    : process.env.NODE_ENV !== 'production',
+
+  // ── First admin ──────────────────────────────────────────────
+  // Password for the admin created on an empty database. Required in production.
+  ADMIN_INITIAL_PASSWORD: process.env.ADMIN_INITIAL_PASSWORD || '',
 
   // ── Auth — secrets MUST be set via environment variables ─────
   // Never rely on these fallbacks in production. Set JWT_SECRET and

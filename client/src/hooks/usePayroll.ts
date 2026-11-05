@@ -31,6 +31,7 @@ export const usePayroll = (options: UsePayrollOptions = {}) => {
     };
 
     fetchPayroll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- options is a new object each render; its fields are listed
   }, [options.codeNo, options.period, options.search, options.skip]);
 
   const deleteRecord = async (id: string) => {

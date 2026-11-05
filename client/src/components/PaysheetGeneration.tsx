@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { currentMonth } from '../utils/format';
 import { BRANCHES } from '../constants/branches';
 import { userService } from '../services/userService';
 import { payrollService } from '../services/payrollService';
@@ -15,12 +16,13 @@ export function PaysheetGeneration({ onSuccess }: PaysheetGenerationProps) {
   const [selectedCodeNos, setSelectedCodeNos] = useState<string[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<string[]>([]);
-  const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7));
+  const [period, setPeriod] = useState(currentMonth());
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchUsers only reads these two filters
   }, [selectedBranch, selectedRole]);
 
   const fetchUsers = async () => {

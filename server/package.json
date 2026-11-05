@@ -11,16 +11,16 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "postinstall": "npx puppeteer browsers install chrome"
+    "postinstall": "npx puppeteer browsers install chrome",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@faker-js/faker": "^10.4.0",
     "@fastify/compress": "^8.3.1",
     "@fastify/cors": "^11.2.0",
     "@fastify/helmet": "^13.0.2",
-    "@fastify/jwt": "^10.0.0",
     "@fastify/rate-limit": "^10.3.0",
-    "@fastify/static": "^9.1.0",
+    "@fastify/static": "^10.1.10",
     "@neondatabase/serverless": "^1.0.2",
     "@prisma/adapter-neon": "^7.7.0",
     "@prisma/client": "^7.7.0",
@@ -32,11 +32,10 @@
     "@types/pg": "^8.20.0",
     "@types/uuid": "^9.0.7",
     "@types/ws": "^8.5.12",
-    "adm-zip": "^0.5.16",
+    "adm-zip": "^0.6.1",
     "archiver": "^7.0.1",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
-    "bullmq": "^5.73.2",
     "dotenv": "^17.3.1",
     "exceljs": "^4.4.0",
     "fastify": "^5.8.4",
@@ -45,18 +44,25 @@
     "pdf-to-printer": "^5.7.0",
     "pg": "^8.20.0",
     "prisma": "^7.7.0",
-    "puppeteer": "^24.40.0",
+    "puppeteer": "^25.16.0",
+    "typescript": "^5.9.3",
     "uuid": "^9.0.0",
     "winston": "^3.19.0",
     "ws": "^8.20.0",
-    "zod": "^4.3.6",
-    "typescript": "^5.9.3"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/supertest": "^7.2.0",
     "@vitest/coverage-v8": "^4.1.4",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
     "supertest": "^7.2.2",
     "ts-node-dev": "^2.0.0",
+    "typescript-eslint": "^8.72.1",
     "vitest": "^4.1.4"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }

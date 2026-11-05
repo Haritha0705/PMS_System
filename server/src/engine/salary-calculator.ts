@@ -35,6 +35,11 @@ export const NON_TARGET_ROLES = {
   JR_EXEC_HR: "Junior Executive HR",
   ADMIN_MANAGER: "Admin Manager",
   LEGAL_MANAGER: "Legal Manager",
+  LAND_DEVELOPMENT_1: "Land development 1",
+  LAND_DEVELOPMENT_2: "Land development 2",
+  SUPERVISOR_LAND_1: "supervisor land 1",
+  SUPERVISOR_LAND_2: "supervisor land 2",
+  WATCHER_LAND: "watcher land",
   EXEC_ASST_HR: "Executive Assistant HR",
   EXEC_ASST_LAND: "Executive Assistant Land",
   EXEC_GEM_1: "Executive Gem 1",
@@ -45,7 +50,6 @@ export const NON_TARGET_ROLES = {
   HEAD_MICRO_FIN: "Head of Micro Finance",
   EXEC_MICRO_FIN_1: "Executive Micro Finance 1",
   EXEC_MICRO_FIN_2: "Executive Micro Finance 2",
-  MICRO_FIN_UNIT_HEAD: "Micro Finance Unit Head",
   GEMO: "Gemologist",
   EXEC_ASST_FIN: "Executive Assistant Finance",
   COORD: "Coordinator",
@@ -139,8 +143,13 @@ export interface NonTargetRoleConfig {
 export const NON_TARGET_CONFIG: Record<NonTargetRole, NonTargetRoleConfig> = {
   SR_EXEC_HR:          { label: "Senior Executive HR",         basicSalary:  42_500, fixedAllowance:  15_000 },
   JR_EXEC_HR:          { label: "Junior Executive HR",         basicSalary:  40_000, fixedAllowance:  10_000 },
-  ADMIN_MANAGER:       { label: "Admin Manager",               basicSalary:  75_000, fixedAllowance:   5_000 },
+  ADMIN_MANAGER:       { label: "Admin Manager",               basicSalary:  65_000, fixedAllowance:   15_000 },
   LEGAL_MANAGER:       { label: "Legal Manager",               basicSalary:  75_000 },
+  LAND_DEVELOPMENT_1:  { label: "Land development 1",          basicSalary:  200_000 },
+  LAND_DEVELOPMENT_2:  { label: "Land development 2",          basicSalary:  150_000 },
+  SUPERVISOR_LAND_1:   { label: "supervisor land 1",           basicSalary:  85_000 },
+  SUPERVISOR_LAND_2:   { label: "supervisor land 2",           basicSalary:  40_000 },
+  WATCHER_LAND:        { label: "watcher land",                basicSalary:  45_000 },
   EXEC_ASST_HR:        { label: "Executive Assistant HR",      basicSalary:  35_000, fixedAllowance:   5_000 },
   EXEC_ASST_LAND:      { label: "Executive Assistant Land",    basicSalary:  35_000, fixedAllowance:   5_000 },
   EXEC_GEM_1:          { label: "Executive Gem 1",             basicSalary:  35_000, fixedAllowance:   5_000 },
@@ -151,7 +160,6 @@ export const NON_TARGET_CONFIG: Record<NonTargetRole, NonTargetRoleConfig> = {
   HEAD_MICRO_FIN:      { label: "Head of Micro Finance",       basicSalary:  80_000, fixedAllowance:  50_000 },
   EXEC_MICRO_FIN_1:    { label: "Executive Micro Finance 1",   basicSalary:  35_000, fixedAllowance:   5_000 },
   EXEC_MICRO_FIN_2:    { label: "Executive Micro Finance 2",   basicSalary:  35_000, fixedAllowance:   5_000 },
-  MICRO_FIN_UNIT_HEAD: { label: "Micro Finance Unit Head",     basicSalary:  80_000, fixedAllowance: 160_000 },
   GEMO:                { label: "Gemologist",                  basicSalary: 200_000, vehicleAllowance: 100_000, fuelAllowance: 80_000 },
   EXEC_ASST_FIN:       { label: "Executive Assistant Finance", basicSalary:  35_000 },
   COORD:               { label: "Coordinator",                 basicSalary:  35_000 },
@@ -215,11 +223,11 @@ export interface PaysheetResult {
 // Utility functions to detect role category
 // ============================================================
 
-export function isSalesRole(role: any): role is SalesRole {
+export function isSalesRole(role: string): role is SalesRole {
   return role in SALES_CONFIG;
 }
 
-export function isNonTargetRole(role: any): role is NonTargetRole {
+export function isNonTargetRole(role: string): role is NonTargetRole {
   return role in NON_TARGET_CONFIG;
 }
 

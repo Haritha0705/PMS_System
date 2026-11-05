@@ -2,7 +2,7 @@
  * Seed script: Migrates existing JSON data into Neon PostgreSQL database.
  * Run: npx ts-node src/scripts/seed-db.ts
  */
-try { require('dotenv/config'); } catch {}
+import 'dotenv/config';
 
 import { initDatabase } from '../services/db';
 import { readJSON, readSingleJSON } from '../services/jsonStore';

@@ -10,7 +10,6 @@ const payMonthQuerySchema = z.object({
 import {
   exportUsersToExcel,
   exportMonthlyPaysheetsToExcel,
-  exportMonthlyPaysheetsByBranchToExcel,
   exportMonthlyPaysheetsByRoleToExcel,
   exportPaysheetsToMonthBranchZip,
 } from '../../utils/excelExport';
@@ -174,24 +173,18 @@ export default async function exportRoutes(fastify: FastifyInstance): Promise<vo
         headers['X-Skipped-Names'] = encodeURIComponent(skippedNames.join(', '));
       }
 
-      reply.hijack();
-      reply.raw.writeHead(200, headers);
+      const archive = archiver('zip', { zlib: { level: 6 } });
+      for (const entry of jsonEntries) {
+        archive.append(entry.content, { name: entry.name });
+      }
+      archive.finalize().catch((err) => console.error('JSON export archive error:', err));
 
-      await new Promise<void>((resolve, reject) => {
-        const archive = archiver('zip', { zlib: { level: 6 } });
-        archive.on('error', reject);
-        archive.on('close', resolve);
-        archive.pipe(reply.raw);
-        for (const entry of jsonEntries) {
-          archive.append(entry.content, { name: entry.name });
-        }
-        archive.finalize();
-      });
+      // Send through the reply (not reply.raw) so the CORS headers set by the
+      // plugin are kept — browsers block the download without them.
+      return reply.headers(headers).send(archive);
     } catch (error) {
       console.error('JSON export error:', error);
-      if (!reply.sent) {
-        return reply.code(500).send({ error: 'Failed to export paysheets as JSON.' });
-      }
+      return reply.code(500).send({ error: 'Failed to export paysheets as JSON.' });
     }
   });
 

@@ -140,7 +140,6 @@ describe('usePaysheets — createPaysheet', () => {
     await waitFor(() => expect(result.current.paysheets).toHaveLength(1));
 
     await act(async () => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { id: _id, createdAt: _ca, updatedAt: _ua, ...paysheetData } = samplePaysheet;
       const created = await result.current.createPaysheet(paysheetData);
       expect(created.id).toBe('ps-002');

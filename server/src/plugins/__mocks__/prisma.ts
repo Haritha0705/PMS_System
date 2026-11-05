@@ -27,6 +27,7 @@ export const mockPrisma = {
     }),
     deleteMany: vi.fn(async ({ where }: { where: { hash?: string; expiresAt?: unknown } }) => {
       if (where?.hash) _tokens.delete(where.hash);
+      else if (!where?.expiresAt) _tokens.clear();
       return { count: 0 };
     }),
   },

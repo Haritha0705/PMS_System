@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import fs from 'fs';
 import { generatePayslipsSchema, printPayslipsSchema } from '../../validation/payslip';
 import { startPayslipGeneration, getJob, printPayslips, generateSinglePdf } from '../../services/payslipService';
+import { ENV } from '../../config/env';
 import logger from '../../utils/logger';
 
 export default async function payslipRoutes(fastify: FastifyInstance): Promise<void> {
@@ -73,6 +74,12 @@ export default async function payslipRoutes(fastify: FastifyInstance): Promise<v
       if (!parsed.success) {
         const errors = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
         return reply.code(400).send({ error: 'Validation failed', details: errors });
+      }
+
+      if (!ENV.SERVER_PRINT_ENABLED) {
+        return reply.code(400).send({
+          error: 'This server has no printer. Please download the ZIP and print from your computer.',
+        });
       }
 
       const { jobId, printerName, copies } = parsed.data;

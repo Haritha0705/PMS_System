@@ -3,7 +3,7 @@ import { paysheetService } from '../services/paysheetService';
 import { userService } from '../services/userService';
 import { ROLE_NAME_TO_CODE, ROLE_CODE_TO_NAME } from '../constants/roleSalaries';
 import { SALES_CONFIG, NON_TARGET_CONFIG, isSalesRole } from '../constants/salaryConfig';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, currentMonth } from '../utils/format';
 import type { User, MonthlyPaysheet } from '../types';
 import { showToast } from './Toast';
 
@@ -39,7 +39,7 @@ export function MonthlyPaysheetForm({
   const [remaining, setRemaining] = useState<{ key: string; target: number; salary: number } | null>(null);
   const [formData, setFormData] = useState<Partial<MonthlyPaysheet>>({
     codeNo: initialData?.codeNo || '',
-    payMonth: initialData?.payMonth || new Date().toISOString().slice(0, 7),
+    payMonth: initialData?.payMonth || currentMonth(),
     role: initialData?.role || '',
     achieve: initialData?.achieve || 0,
     allowance: initialData?.allowance || 0,
@@ -58,11 +58,13 @@ export function MonthlyPaysheetForm({
 
   useEffect(() => {
     fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load the list once when the form opens
   }, []);
 
   const fetchUsers = async () => {
     try {
-      const res = await userService.listUsers({ status: 'active', limit: 1000 });
+      // New paysheets are for active staff; an existing one may belong to someone since deactivated
+      const res = await userService.listUsers({ status: isEditMode ? 'all' : 'active', limit: 1000 });
       setUsers(res.users);
     } catch (err: unknown) {
       showToast(err instanceof Error ? err.message : 'Failed to load employees', 'error');

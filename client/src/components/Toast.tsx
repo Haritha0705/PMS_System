@@ -12,6 +12,7 @@ let toastId = 0;
 let addToastFn: ((message: string, type: Toast['type']) => void) | null = null;
 const pendingToasts: { message: string; type: Toast['type'] }[] = [];
 
+// eslint-disable-next-line react-refresh/only-export-components -- shared helper only slows hot reload in development
 export function showToast(message: string, type: Toast['type'] = 'info') {
   if (addToastFn) {
     addToastFn(message, type);

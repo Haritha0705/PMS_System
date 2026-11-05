@@ -19,6 +19,16 @@ try {
   // Logo not available — will fall back to text
 }
 
+/** Names and custom fields are typed by users, so they must not be read as HTML. */
+function esc(value: string): string {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function fmt(amount: number): string {
   if (amount === 0) return 'Rs. 0.00';
   return `Rs. ${amount.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -35,7 +45,7 @@ function formatMonth(payMonth: string): string {
 
 function row(label: string, amount: number, alt = false): string {
   if (amount === 0 && label !== 'No Pay' && label !== 'Late Comes' && label !== 'Welfare') return '';
-  return `<div class="row${alt ? ' alt' : ''}"><span>${label}</span><span class="amt">${fmt(amount)}</span></div>`;
+  return `<div class="row${alt ? ' alt' : ''}"><span>${esc(label)}</span><span class="amt">${fmt(amount)}</span></div>`;
 }
 
 export function renderPayslipHTML(emp: PayslipEmployee): string {
@@ -146,15 +156,15 @@ export function renderPayslipHTML(emp: PayslipEmployee): string {
   <div class="info">
     <div class="info-grid">
       <div class="info-col">
-        <div class="info-row"><span class="lbl">Employee ID</span><span class="col">:</span><span class="val">${emp.codeNo}</span></div>
-        <div class="info-row"><span class="lbl">Name</span><span class="col">:</span><span class="val">${emp.firstName} ${emp.lastName}</span></div>
-        <div class="info-row"><span class="lbl">Designation</span><span class="col">:</span><span class="val">${emp.designation}</span></div>
-        <div class="info-row"><span class="lbl">Branch</span><span class="col">:</span><span class="val">${emp.branch}</span></div>
+        <div class="info-row"><span class="lbl">Employee ID</span><span class="col">:</span><span class="val">${esc(emp.codeNo)}</span></div>
+        <div class="info-row"><span class="lbl">Name</span><span class="col">:</span><span class="val">${esc(emp.firstName)} ${esc(emp.lastName)}</span></div>
+        <div class="info-row"><span class="lbl">Designation</span><span class="col">:</span><span class="val">${esc(emp.designation)}</span></div>
+        <div class="info-row"><span class="lbl">Branch</span><span class="col">:</span><span class="val">${esc(emp.branch)}</span></div>
       </div>
       <div class="info-col">
         <div class="info-row"><span class="lbl">Pay Month</span><span class="col">:</span><span class="val">${formatMonth(emp.payMonth)}</span></div>
-        ${emp.bankName ? `<div class="info-row"><span class="lbl">Bank</span><span class="col">:</span><span class="val">${emp.bankName}</span></div>` : ''}
-        ${emp.bankAccount ? `<div class="info-row"><span class="lbl">Account</span><span class="col">:</span><span class="val">${emp.bankAccount}</span></div>` : ''}
+        ${emp.bankName ? `<div class="info-row"><span class="lbl">Bank</span><span class="col">:</span><span class="val">${esc(emp.bankName)}</span></div>` : ''}
+        ${emp.bankAccount ? `<div class="info-row"><span class="lbl">Account</span><span class="col">:</span><span class="val">${esc(emp.bankAccount)}</span></div>` : ''}
         <div class="info-row"><span class="lbl">Date</span><span class="col">:</span><span class="val">${new Date(emp.createdAt).toLocaleDateString('en-LK')}</span></div>
       </div>
     </div>

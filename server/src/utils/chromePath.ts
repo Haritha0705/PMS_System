@@ -7,7 +7,6 @@ import fs from 'fs';
  */
 export function findChromePath(): string | undefined {
   const isWin = process.platform === 'win32';
-  const exeName = isWin ? 'chrome.exe' : 'chrome';
 
   function searchCache(cacheRoot: string): string | undefined {
     const chromeDir = path.join(cacheRoot, 'chrome');

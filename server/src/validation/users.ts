@@ -14,14 +14,23 @@ const emailSchema = z
   .max(300)
   .transform((v) => v.toLowerCase().trim());
 
-const moneySchema = z
+const amountSchema = z
   .number()
   .min(0, 'Cannot be negative')
-  .default(0);
+  .max(999_999_999.99, 'Amount is too large');
+
+const moneySchema = amountSchema.default(0);
+
+const isRealDate = (value: string): boolean => {
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+};
 
 const dateSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format')
+  .refine(isRealDate, 'Date is not a real calendar date')
+  .or(z.literal('')) // the form's date field is optional and sends '' when empty
   .optional();
 
 // ── Create ────────────────────────────────────────────────────
@@ -57,9 +66,9 @@ export const updateUserSchema = z.object({
   joinDate:    dateSchema,
   bankAccount: z.string().max(100).optional(),
   bankName:    z.string().max(200).optional(),
-  basicSalary: z.number().min(0).optional(),
-  allowances:  z.number().min(0).optional(),
-  deductions:  z.number().min(0).optional(),
+  basicSalary: amountSchema.optional(),
+  allowances:  amountSchema.optional(),
+  deductions:  amountSchema.optional(),
   status:      z.enum(['active', 'delete']).optional(),
 });
 

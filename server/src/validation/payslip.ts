@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const generatePayslipsSchema = z.object({
   payMonth: z
     .string()
-    .regex(/^\d{4}-\d{2}$/, 'payMonth must be YYYY-MM format'),
+    .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'payMonth must be YYYY-MM format'),
   codeNos: z
     .array(z.string().min(1))
     .optional()

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { currentMonth } from '../utils/format';
 import { useReactToPrint } from 'react-to-print';
 import { FiPrinter, FiDownload } from 'react-icons/fi';
 import api from '../services/api';
@@ -10,7 +11,7 @@ import PaySheet from '../components/PaySheet';
 import type { User, MonthlyPaysheet } from '../types';
 
 export default function PrintPayslips() {
-  const [payMonth, setPayMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [payMonth, setPayMonth] = useState(currentMonth());
 
   // Employee selection state
   const [userMap, setUserMap] = useState<Map<string, User>>(new Map());

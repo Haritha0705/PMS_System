@@ -38,6 +38,7 @@ export const useUsers = (options: UseUsersOptions = {}) => {
     };
 
     fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- options is a new object each render; its fields are listed
   }, [
     options.search, options.branch, options.role, options.status,
     options.page, options.limit, options.sortBy, options.sortOrder, options.skip,

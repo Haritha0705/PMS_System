@@ -18,7 +18,6 @@ vi.mock('../utils/excelExport', () => ({
   exportUsersToExcel: vi.fn(async () => Buffer.from('xlsx-users')),
   exportMonthlyPaysheetsToExcel: vi.fn(async () => Buffer.from('xlsx-paysheets')),
   exportMonthlyPaysheetsByRoleToExcel: vi.fn(async () => Buffer.from('xlsx-role')),
-  exportMonthlyPaysheetsByBranchToExcel: vi.fn(async () => Buffer.from('xlsx-branch')),
   exportPaysheetsToMonthBranchZip: vi.fn(async () => Buffer.from('zip-branch')),
 }));
 

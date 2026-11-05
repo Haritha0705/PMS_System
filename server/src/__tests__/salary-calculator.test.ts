@@ -62,7 +62,7 @@ describe('JR_EXEC_HR — 1 month, 10K fixed allowance + 10K otherOffer, no deduc
 
 // ── Test 5: ADMIN_MANAGER (Cat B), 2 no-pay, 10h late ────────────────────────
 
-describe('ADMIN_MANAGER — 1 month, 5K fixed allowance, 0 otherOffer, 2 no-pay, 10h late', () => {
+describe('ADMIN_MANAGER — 1 month, 15K fixed allowance, 0 otherOffer, 2 no-pay, 10h late', () => {
   const config = getRoleConfig('ADMIN_MANAGER')!;
   const result = calculatePaysheet({
     role: config,
@@ -76,7 +76,7 @@ describe('ADMIN_MANAGER — 1 month, 5K fixed allowance, 0 otherOffer, 2 no-pay,
   });
 
   it('grossSalary = 80,000', () => expect(near(result.grossSalary, 80_000)).toBe(true));
-  it('netSalary = 65,750', () => expect(near(result.netSalary, 65_750)).toBe(true));
+  it('netSalary = 67,650', () => expect(near(result.netSalary, 67_650)).toBe(true));
 });
 
 // ── Test 7: EXEC_MICRO_FIN_1 (Cat B), EPF not enrolled ───────────────────────
@@ -179,8 +179,13 @@ describe('Category B role table (no inputs, no deductions)', () => {
   const TABLE: Record<string, { basic: number; total: number }> = {
     SR_EXEC_HR:          { basic:  42_500, total:  57_500 },
     JR_EXEC_HR:          { basic:  40_000, total:  50_000 },
-    ADMIN_MANAGER:       { basic:  75_000, total:  80_000 },
+    ADMIN_MANAGER:       { basic:  65_000, total:  80_000 },
     LEGAL_MANAGER:       { basic:  75_000, total:  75_000 },
+    LAND_DEVELOPMENT_1:  { basic: 200_000, total: 200_000 },
+    LAND_DEVELOPMENT_2:  { basic: 150_000, total: 150_000 },
+    SUPERVISOR_LAND_1:   { basic:  85_000, total:  85_000 },
+    SUPERVISOR_LAND_2:   { basic:  40_000, total:  40_000 },
+    WATCHER_LAND:        { basic:  45_000, total:  45_000 },
     EXEC_ASST_HR:        { basic:  35_000, total:  40_000 },
     EXEC_ASST_LAND:      { basic:  35_000, total:  40_000 },
     EXEC_GEM_1:          { basic:  35_000, total:  40_000 },
@@ -191,7 +196,6 @@ describe('Category B role table (no inputs, no deductions)', () => {
     HEAD_MICRO_FIN:      { basic:  80_000, total: 130_000 },
     EXEC_MICRO_FIN_1:    { basic:  35_000, total:  40_000 },
     EXEC_MICRO_FIN_2:    { basic:  35_000, total:  40_000 },
-    MICRO_FIN_UNIT_HEAD: { basic:  80_000, total: 240_000 },
     GEMO:                { basic: 200_000, total: 380_000 },
     EXEC_ASST_FIN:       { basic:  35_000, total:  35_000 },
     COORD:               { basic:  35_000, total:  35_000 },

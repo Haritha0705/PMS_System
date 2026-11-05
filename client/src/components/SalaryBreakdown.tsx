@@ -55,6 +55,7 @@ interface BreakdownRow {
 
 // ── Build rows ───────────────────────────────────────────────
 
+// eslint-disable-next-line react-refresh/only-export-components -- shared helper only slows hot reload in development
 export function buildBreakdownRows(ps: MonthlyPaysheet): BreakdownRow[] {
   const rows: BreakdownRow[] = [];
   const role = ps.role;

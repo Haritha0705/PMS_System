@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { currentMonth } from '../utils/format';
 import { FiPrinter, FiDownload, FiCheckCircle, FiAlertCircle, FiFileText, FiSearch, FiRefreshCw } from 'react-icons/fi';
 import { useReactToPrint } from 'react-to-print';
 import { paysheetService } from '../services/paysheetService';
@@ -33,7 +34,7 @@ export default function Payroll() {
   // ── Generate & Preview state ──────────────────────────────
   const [userMap, setUserMap] = useState<Map<string, User>>(new Map());
   const [selectedCodeNos, setSelectedCodeNos] = useState<Set<string>>(new Set());
-  const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7));
+  const [period, setPeriod] = useState(currentMonth());
   const [previewPaysheets, setPreviewPaysheets] = useState<MonthlyPaysheet[]>([]);
   const [fetching, setFetching] = useState(false);
   const [printMode, setPrintMode] = useState<'a4' | '2up'>('a4');
@@ -47,7 +48,7 @@ export default function Payroll() {
   const [filterBranch, setFilterBranch] = useState('');
 
   // ── Bulk PDF state ────────────────────────────────────────
-  const [pdfMonth, setPdfMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [pdfMonth, setPdfMonth] = useState(currentMonth());
   const [concurrency, setConcurrency] = useState(5);
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [job, setJob] = useState<JobProgress | null>(null);
@@ -59,7 +60,7 @@ export default function Payroll() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Salary Audit tab state ────────────────────────────────
-  const [auditPeriod, setAuditPeriod] = useState(new Date().toISOString().slice(0, 7));
+  const [auditPeriod, setAuditPeriod] = useState(currentMonth());
   const [auditSelectedCodeNos, setAuditSelectedCodeNos] = useState<Set<string>>(new Set());
   const [auditPaysheets, setAuditPaysheets] = useState<MonthlyPaysheet[]>([]);
   const [auditFetching, setAuditFetching] = useState(false);
@@ -87,7 +88,7 @@ export default function Payroll() {
   });
 
   // ── Branch Print state ────────────────────────────────────
-  const [branchPrintMonth, setBranchPrintMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [branchPrintMonth, setBranchPrintMonth] = useState(currentMonth());
   const [branchPrintBranch, setBranchPrintBranch] = useState('');
   const [branchPrintPaysheets, setBranchPrintPaysheets] = useState<MonthlyPaysheet[]>([]);
   const [branchPrintLoading, setBranchPrintLoading] = useState(false);
@@ -322,7 +323,11 @@ export default function Payroll() {
             setPdfGenerating(false);
 
             if (res.data.status === 'completed') {
-              showToast(`Generated ${res.data.completed} PDF payslips successfully!`, 'success');
+              if (res.data.failed > 0) {
+                showToast(`Generated ${res.data.completed} PDF payslips, but ${res.data.failed} failed`, 'error');
+              } else {
+                showToast(`Generated ${res.data.completed} PDF payslips successfully!`, 'success');
+              }
             } else {
               showToast(res.data.error || 'Generation failed', 'error');
             }

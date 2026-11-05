@@ -21,18 +21,23 @@
 - ✅ Real-time progress tracking
 - ✅ Desktop & Web-based interface
 
-### Default Login
-```
-Username: admin
-Password: admin123
-```
+### First Login
+The first admin (username `admin`) is created on an empty database with the password in
+`ADMIN_INITIAL_PASSWORD`. This variable is required in production; local development falls
+back to `admin123`. Change the password from **Account → Change Password** after signing in.
+
+`DATABASE_URL` must be set in `.env` or your hosting settings. When hosting behind more than
+one proxy, set `TRUST_PROXY_HOPS` so login rate limits apply per visitor.
+
+Bulk **Print** uses the printer attached to the server, so it is off in production unless
+`SERVER_PRINT_ENABLED=true`. On hosted servers, download the ZIP and print from your computer.
 
 ---
 
 ## 📦 Installation
 
 ### Prerequisites
-- Node.js v18+
+- Node.js v22.12+
 - PostgreSQL (Neon recommended)
 - Chrome/Chromium for PDF generation
 

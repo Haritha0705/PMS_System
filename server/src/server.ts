@@ -15,5 +15,4 @@ app.listen({ port: ENV.PORT, host: '0.0.0.0' }, (err) => {
   }
   logger.info(`PMS Application Server running on http://localhost:${ENV.PORT}`);
   logger.info('Neon PostgreSQL database connected');
-  logger.info('Default login: admin / admin123');
 });

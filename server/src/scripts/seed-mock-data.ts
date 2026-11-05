@@ -62,6 +62,7 @@ async function generateMockUsers() {
   return users;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- throwaway development seed script
 async function generateMockPaysheets(users: any[]) {
   console.log(`Generating paysheets for ${users.length} users...`);
 

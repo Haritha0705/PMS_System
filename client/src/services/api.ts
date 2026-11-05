@@ -1,4 +1,4 @@
-import axios, { type InternalAxiosRequestConfig } from 'axios';
+import axios, { type AxiosError } from 'axios';
 
 // Resolve API base from env. VITE_API_BASE_URL may be the bare origin
 // (https://host) or already include the /api suffix — both are accepted.
@@ -48,24 +48,63 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// ── Response interceptor — silent refresh on 401 ─────────────
+// ── Session refresh ──────────────────────────────────────────
+// The server replaces the refresh token on every use, so each new one must be
+// saved and only one exchange may run at a time.
 
-let isRefreshing = false;
-let pendingRequests: Array<{
-  resolve: (config: InternalAxiosRequestConfig) => void;
-  reject: (error: unknown) => void;
-}> = [];
+let refreshInFlight: Promise<string> | null = null;
 
-function processPendingRequests(newToken: string | null): void {
-  for (const { resolve, reject } of pendingRequests) {
-    if (newToken) {
-      resolve({ headers: { Authorization: `Bearer ${newToken}` } } as InternalAxiosRequestConfig);
-    } else {
-      reject(new Error('Refresh failed'));
-    }
+async function exchangeRefreshToken(): Promise<string> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) throw new Error('No refresh token available');
+
+  const post = (token: string) =>
+    axios.post<{ accessToken: string; refreshToken: string }>(`${API_BASE_URL}/auth/refresh`, { refreshToken: token });
+
+  let response;
+  try {
+    response = await post(refreshToken);
+  } catch (err) {
+    // Another browser tab may have replaced the token while this request ran
+    const latest = getRefreshToken();
+    if (!latest || latest === refreshToken) throw err;
+    response = await post(latest);
   }
-  pendingRequests = [];
+
+  saveRefreshToken(response.data.refreshToken);
+  accessToken = response.data.accessToken;
+  return response.data.accessToken;
 }
+
+/** Exchange the stored refresh token for new tokens. Returns the new access token. */
+export function refreshSession(): Promise<string> {
+  refreshInFlight ??= exchangeRefreshToken().finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
+}
+
+// ── Server error messages ────────────────────────────────────
+// Puts the server's own message on the error, so pages can show error.message.
+
+async function withServerMessage(error: AxiosError): Promise<AxiosError> {
+  try {
+    let data: unknown = error.response?.data;
+    if (data instanceof Blob) data = await data.text();
+    if (data instanceof ArrayBuffer) data = new TextDecoder().decode(data);
+    if (typeof data === 'string') data = JSON.parse(data);
+
+    const { details, error: message } = (data ?? {}) as { details?: unknown; error?: unknown };
+    const detail = Array.isArray(details) ? details[0] : undefined;
+    const text = typeof detail === 'string' ? detail : message;
+    if (typeof text === 'string' && text) error.message = text;
+  } catch {
+    // Not a JSON error body — keep axios's own message
+  }
+  return error;
+}
+
+// ── Response interceptor — silent refresh on 401 ─────────────
 
 api.interceptors.response.use(
   (response) => response,
@@ -81,59 +120,30 @@ api.interceptors.response.use(
       return Promise.reject(detailedError);
     }
 
-    // Skip refresh attempts for auth endpoints or already-retried requests
-    if (
-      error.response.status !== 401 ||
-      originalRequest._retry ||
-      originalRequest.url?.includes('/auth/')
-    ) {
-      return Promise.reject(error);
-    }
-
-    // If already refreshing, queue this request
-    if (isRefreshing) {
-      return new Promise((resolve, reject) => {
-        pendingRequests.push({
-          resolve: () => {
-            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-            resolve(api(originalRequest));
-          },
-          reject,
-        });
-      });
+    // Skip refresh attempts for auth endpoints or already-retried requests.
+    // Changing the password is a normal signed-in request, so it may refresh.
+    const isAuthRequest =
+      originalRequest.url?.includes('/auth/') && !originalRequest.url.includes('/auth/change-password');
+    if (error.response.status !== 401 || originalRequest._retry || isAuthRequest) {
+      return Promise.reject(await withServerMessage(error));
     }
 
     originalRequest._retry = true;
-    isRefreshing = true;
 
     try {
-      const refreshToken = getRefreshToken();
-
-      if (!refreshToken) {
-        throw new Error('No refresh token available');
-      }
-
-      // Exchange refresh token for new access token
-      const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
-
-      accessToken = data.accessToken;
-      processPendingRequests(data.accessToken);
-
-      // Retry the original request with new token
-      originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+      // Retry the original request with the new token
+      const newAccessToken = await refreshSession();
+      originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
       return api(originalRequest);
     } catch {
       // Refresh failed — clear everything and redirect to login
       accessToken = null;
-      processPendingRequests(null);
       deleteRefreshToken();
 
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
-      return Promise.reject(error);
-    } finally {
-      isRefreshing = false;
+      return Promise.reject(await withServerMessage(error));
     }
   }
 );

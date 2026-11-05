@@ -36,6 +36,7 @@ export const usePaysheets = (options: UsePaysheetOptions = {}) => {
     };
 
     fetchPaysheets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- options is a new object each render; its fields are listed
   }, [options.codeNo, options.payMonth, options.role, options.search, options.page, options.limit, options.skip]);
 
   const createPaysheet = async (data: Omit<MonthlyPaysheet, 'id' | 'createdAt' | 'updatedAt'>) => {

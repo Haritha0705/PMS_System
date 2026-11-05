@@ -9,7 +9,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 vi.mock('../../services/userService', () => ({ userService: { getStats: vi.fn() } }));
 vi.mock('../../services/paysheetService', () => ({ paysheetService: { getMonthPaysheets: vi.fn() } }));
 vi.mock('../../components/Toast', () => ({ showToast: vi.fn() }));
-vi.mock('../../utils/format', () => ({ formatCurrency: (n: number) => `Rs.${n}` }));
+vi.mock('../../utils/format', () => ({ currentMonth: () => '2026-04', formatCurrency: (n: number) => `Rs.${n}` }));
 
 import { userService } from '../../services/userService';
 import { paysheetService } from '../../services/paysheetService';
@@ -30,10 +30,16 @@ const fakeStats = {
 beforeEach(() => {
   vi.clearAllMocks();
   mockGetStats.mockResolvedValue(fakeStats);
-  mockGetMonthPaysheets.mockResolvedValue({ paysheets: [1, 2, 3] });
+  mockGetMonthPaysheets.mockResolvedValue({ paysheets: [1, 2, 3], total: 3 });
 });
 
 describe('Dashboard', () => {
+  it('counts every paysheet this month, not just the first page', async () => {
+    mockGetMonthPaysheets.mockResolvedValue({ paysheets: new Array(15).fill(1), total: 40 });
+    render(<Dashboard />);
+    expect(await screen.findByText('40')).toBeInTheDocument();
+  });
+
   it('shows loading spinner initially', () => {
     mockGetStats.mockReturnValue(new Promise(() => {}));
     render(<Dashboard />);

@@ -15,7 +15,7 @@ vi.mock('../../services/paysheetService', () => ({
   },
 }));
 vi.mock('../../components/Toast', () => ({ showToast: vi.fn() }));
-vi.mock('../../utils/format', () => ({ formatCurrency: (n: number) => `Rs.${n}` }));
+vi.mock('../../utils/format', () => ({ currentMonth: () => '2026-04', formatCurrency: (n: number) => `Rs.${n}` }));
 
 import { paysheetService } from '../../services/paysheetService';
 import { showToast } from '../../components/Toast';
@@ -117,6 +117,19 @@ describe('PaysheetList', () => {
 
     await waitFor(() => {
       expect(mockDelete).toHaveBeenCalledWith('ps1');
+    });
+  });
+
+  it('reloads the list after a delete on page 1', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<PaysheetList />);
+    await waitFor(() => expect(screen.getByText('E001')).toBeInTheDocument());
+    const loadsBefore = (paysheetService.getMonthPaysheets as ReturnType<typeof vi.fn>).mock.calls.length;
+
+    await userEvent.click(screen.getByTitle('Delete'));
+
+    await waitFor(() => {
+      expect((paysheetService.getMonthPaysheets as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(loadsBefore);
     });
   });
 

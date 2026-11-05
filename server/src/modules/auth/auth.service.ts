@@ -101,6 +101,11 @@ export async function revokeRefreshToken(token?: string): Promise<void> {
   }
 }
 
+export async function revokeAllRefreshTokens(): Promise<void> {
+  const prisma = getPrisma();
+  await prisma.refreshToken.deleteMany({});
+}
+
 export async function cleanupExpiredTokens(): Promise<void> {
   const prisma = getPrisma();
   await prisma.refreshToken.deleteMany({ where: { expiresAt: { lte: new Date() } } });

@@ -11,6 +11,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   '/paysheets': { title: 'Monthly Paysheets', subtitle: 'Create and manage monthly paysheets' },
   '/print-payslips': { title: 'Print Payslips', subtitle: 'Preview and print payslips as PDF' },
   '/export': { title: 'Export & Backup', subtitle: 'Download data and manage backups' },
+  '/change-password': { title: 'Change Password', subtitle: 'Update your sign-in password' },
 };
 
 export default function Layout() {
@@ -19,9 +20,11 @@ export default function Layout() {
   const location = useLocation();
 
   // Close mobile menu on route change
-  useEffect(() => {
+  const [menuPath, setMenuPath] = useState(location.pathname);
+  if (menuPath !== location.pathname) {
+    setMenuPath(location.pathname);
     setMobileMenuOpen(false);
-  }, [location.pathname]);
+  }
 
   // Close mobile menu on resize to desktop
   useEffect(() => {

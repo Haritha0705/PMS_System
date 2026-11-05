@@ -25,9 +25,20 @@ const jobs = new Map<string, Job>();
 const TEMP_DIR = process.env.TEMP_DIR || path.join(__dirname, '..', '..', 'temp');
 const OUTPUT_DIR = process.env.OUTPUT_DIR || path.join(__dirname, '..', '..', 'exports');
 
+/** Finished ZIPs hold salary and bank details, so they are kept for one day only. */
+const ZIP_RETENTION_MS = 24 * 60 * 60 * 1000;
+
 function ensureDirs(): void {
   for (const dir of [TEMP_DIR, OUTPUT_DIR]) {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+function removeExpiredZips(): void {
+  for (const name of fs.readdirSync(OUTPUT_DIR)) {
+    if (!/^payslips_.*\.zip$/.test(name)) continue;
+    const file = path.join(OUTPUT_DIR, name);
+    if (Date.now() - fs.statSync(file).mtimeMs > ZIP_RETENTION_MS) cleanup(file);
   }
 }
 
@@ -104,29 +115,6 @@ export async function startPayslipGeneration(
   });
 
   return { job, skipped };
-}
-
-/**
- * Called by BullMQ worker — resumes/drives a job that was already created
- * and stored in Redis (job data was persisted before enqueueing).
- */
-export async function processJobById(
-  jobId: string,
-  payMonth: string,
-  codeNos: string[] | undefined,
-  concurrency: number,
-): Promise<void> {
-  const { employees } = await buildPayslipData(payMonth, codeNos);
-  let job = await getJob(jobId);
-  if (!job) {
-    job = {
-      id: jobId, status: 'pending', total: employees.length,
-      completed: 0, failed: 0, progress: 0,
-      zipPath: null, error: null, createdAt: new Date().toISOString(),
-    };
-    jobs.set(jobId, job);
-  }
-  await processJob(job, employees, concurrency);
 }
 
 // ── Data assembly ───────────────────────────────────────────
@@ -209,6 +197,7 @@ async function processJob(
   concurrency: number
 ): Promise<void> {
   ensureDirs();
+  removeExpiredZips();
 
   const jobDir = path.join(TEMP_DIR, job.id);
   fs.mkdirSync(jobDir, { recursive: true });
@@ -232,9 +221,11 @@ async function processJob(
 
   try {
     await runWorkers(job, batches, jobDir, workerPath);
+    if (job.completed === 0) throw new Error('None of the payslips could be generated');
   } catch (err) {
     job.status = 'failed';
     job.error = err instanceof Error ? err.message : String(err);
+    await persistJob(job);
     logger.error(`Job ${job.id} worker phase failed`, { error: job.error });
     cleanup(jobDir);
     return;
@@ -262,6 +253,10 @@ async function processJob(
   }
 }
 
+function updateProgress(job: Job): void {
+  job.progress = Math.floor(((job.completed + job.failed) / job.total) * 95); // 0-95%, last 5% for zipping
+}
+
 function runWorkers(
   job: Job,
   batches: PayslipEmployee[][],
@@ -270,33 +265,48 @@ function runWorkers(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     let finishedWorkers = 0;
-    let hasRejected = false;
+    let settled = false;
     const workers: Worker[] = [];
+
+    const fail = (err: Error) => {
+      if (settled) return;
+      settled = true;
+      terminateAll(workers);
+      reject(err);
+    };
 
     for (let i = 0; i < batches.length; i++) {
       const worker = new Worker(workerPath);
       workers.push(worker);
+      let batchDone = false;
 
       worker.on('message', (msg: WorkerMessage) => {
-        if (hasRejected) return;
+        if (settled) return;
 
         switch (msg.type) {
           case 'progress':
             job.completed++;
-            job.progress = Math.floor((job.completed / job.total) * 95); // 0-95%, last 5% for zipping
+            updateProgress(job);
             break;
 
           case 'error':
             job.failed++;
+            updateProgress(job);
             logger.warn(`Job ${job.id}: payslip failed - ${msg.message}`, {
               failedId: msg.failedId,
             });
+            // No failedId: the whole batch crashed (e.g. Chrome would not start) and
+            // this worker will never send 'done'.
+            if (!msg.failedId) fail(new Error(msg.message));
             break;
 
           case 'done':
+            batchDone = true;
             finishedWorkers++;
             logger.info(`Job ${job.id}: batch ${msg.batchIndex} done (${msg.files.length} files)`);
+            worker.terminate(); // workers wait for more tasks forever unless stopped
             if (finishedWorkers === batches.length) {
+              settled = true;
               resolve();
             }
             break;
@@ -304,22 +314,12 @@ function runWorkers(
       });
 
       worker.on('error', (err) => {
-        if (hasRejected) return;
-        hasRejected = true;
         logger.error(`Worker ${i} crashed`, { error: err.message });
-        terminateAll(workers);
-        reject(err);
+        fail(err);
       });
 
       worker.on('exit', (code) => {
-        if (code !== 0 && !hasRejected) {
-          // Worker exited without sending 'done' - count it as finished to avoid hanging
-          finishedWorkers++;
-          logger.warn(`Worker ${i} exited with code ${code}`);
-          if (finishedWorkers === batches.length) {
-            resolve();
-          }
-        }
+        if (!batchDone) fail(new Error(`PDF worker ${i} stopped before finishing (exit code ${code})`));
       });
 
       // Send task
@@ -384,7 +384,7 @@ export async function printPayslips(
   printerName?: string,
   copies: number = 1
 ): Promise<string> {
-  const job = jobs.get(jobId);
+  const job = await getJob(jobId);
   if (!job) throw new Error('Job not found');
   if (job.status !== 'completed' || !job.zipPath) {
     throw new Error('ZIP not ready for printing');
@@ -536,7 +536,19 @@ export async function generateSinglePdf(paysheetId: string): Promise<Buffer> {
   };
 
   const html = renderPayslipHTML(emp);
+  return renderOneAtATime(() => renderSinglePdf(html));
+}
 
+// Each render starts its own Chrome, so run them in turn to protect the server's memory.
+let renderQueue: Promise<unknown> = Promise.resolve();
+
+function renderOneAtATime<T>(task: () => Promise<T>): Promise<T> {
+  const run = renderQueue.then(task, task);
+  renderQueue = run.catch(() => undefined);
+  return run;
+}
+
+async function renderSinglePdf(html: string): Promise<Buffer> {
   const chromePath = findChromePath();
   const browser = await puppeteer.launch({
     headless: true,
@@ -547,6 +559,7 @@ export async function generateSinglePdf(paysheetId: string): Promise<Buffer> {
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 794, height: 1123 });
+    await page.setJavaScriptEnabled(false);
     await page.setContent(html, { waitUntil: 'domcontentloaded' });
 
     const pdfBuffer = await page.pdf({

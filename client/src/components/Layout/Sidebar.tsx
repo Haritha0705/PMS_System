@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { FiBarChart2, FiUsers, FiDollarSign, FiFileText, FiPrinter, FiDownload, FiLogOut, FiChevronRight, FiChevronLeft, FiX } from 'react-icons/fi';
+import { FiBarChart2, FiUsers, FiDollarSign, FiFileText, FiPrinter, FiDownload, FiLock, FiLogOut, FiChevronRight, FiChevronLeft, FiX } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 
 interface SidebarProps {
@@ -20,6 +20,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
     paysheets: <FiFileText size={20} />,
     printpayslips: <FiPrinter size={20} />,
     export: <FiDownload size={20} />,
+    password: <FiLock size={20} />,
     logout: <FiLogOut size={20} />,
   };
 
@@ -66,6 +67,13 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
         <span className="nav-section-label" style={{ marginTop: 'auto' }}>
           {(collapsed && !mobileOpen) ? '•' : 'Account'}
         </span>
+        <NavLink
+          to="/change-password"
+          className={`nav-item${location.pathname === '/change-password' ? ' active' : ''}`}
+        >
+          <span className="nav-item-icon">{iconMap.password}</span>
+          {(!collapsed || mobileOpen) && <span>Change Password</span>}
+        </NavLink>
         <button className="nav-item" onClick={logout}>
           <span className="nav-item-icon">{iconMap.logout}</span>
           {(!collapsed || mobileOpen) && <span>Logout</span>}

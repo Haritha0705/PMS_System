@@ -58,6 +58,7 @@ async function processBatch(task: WorkerTask): Promise<void> {
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 794, height: 1123 });
+    await page.setJavaScriptEnabled(false);
 
     for (const employee of batch) {
       let lastError: Error | null = null;
@@ -84,6 +85,7 @@ async function processBatch(task: WorkerTask): Promise<void> {
           failedId: employee.codeNo,
         };
         parentPort?.postMessage(msg);
+        continue; // only finished PDFs count as completed
       }
 
       completedCount++;

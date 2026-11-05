@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { FiUsers, FiCheckCircle, FiBriefcase, FiDollarSign, FiFileText } from 'react-icons/fi';
 import { userService } from '../services/userService';
 import { paysheetService } from '../services/paysheetService';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, currentMonth } from '../utils/format';
 import type { StatsResponse } from '../types';
 import { showToast } from '../components/Toast';
 
@@ -16,7 +16,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     userStats: null,
     paysheetCount: 0,
-    paysheetMonth: new Date().toISOString().slice(0, 7),
+    paysheetMonth: currentMonth(),
   });
   const [loading, setLoading] = useState(true);
 
@@ -24,13 +24,13 @@ export default function Dashboard() {
     const fetchStats = async () => {
       try {
         const userStats = await userService.getStats();
-        const currentMonth = new Date().toISOString().slice(0, 7);
-        const paysheetRes = await paysheetService.getMonthPaysheets(currentMonth);
+        const month = currentMonth();
+        const paysheetRes = await paysheetService.getMonthPaysheets(month);
         
         setStats({
           userStats,
-          paysheetCount: paysheetRes.paysheets.length,
-          paysheetMonth: currentMonth,
+          paysheetCount: paysheetRes.total,
+          paysheetMonth: month,
         });
       } catch (err: unknown) {
         showToast(err instanceof Error ? err.message : 'Failed to load dashboard stats', 'error');

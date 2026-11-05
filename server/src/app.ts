@@ -1,5 +1,5 @@
 // Load environment variables first
-require('dotenv').config();
+import 'dotenv/config';
 
 import path from 'path';
 import Fastify from 'fastify';
@@ -22,15 +22,14 @@ import payslipRoutes from './modules/payslips/payslips.routes';
 import exportRoutes from './modules/payslips/export.routes';
 
 import { authMiddleware } from './modules/auth/auth.service';
-import { ensureAdmin } from './modules/auth/auth.routes';
+import { ensureAdmin, authRateLimitOptions } from './modules/auth/auth.routes';
 import { initDatabase } from './services/db';
-import { registerAllWorkers } from './queues/processors';
-import { closeQueues } from './queues/queues';
 import logger from './utils/logger';
 
 const app = Fastify({
   logger: true,
   bodyLimit: 1_048_576,
+  trustProxy: (_address, hop) => hop < ENV.TRUST_PROXY_HOPS,
 });
 
 // ── Plugins ──────────────────────────────────────────────────
@@ -40,24 +39,9 @@ app.register(corsPlugin);
 app.register(compress, { global: true });
 app.register(helmet, { contentSecurityPolicy: false });
 
-// ── Serve exported files ─────────────────────────────────────
-const exportsDir = ENV.OUTPUT_DIR || path.join(__dirname, '..', 'exports');
-app.register(staticPlugin, {
-  root: exportsDir,
-  prefix: '/exports/',
-  decorateReply: true,
-});
-
-// ── Rate limit login only (5 attempts / 15 min per IP) ───────
+// ── Auth routes — only the password routes are rate limited ──
 app.register(async (fastify) => {
-  await fastify.register(rateLimit, {
-    max: 5,
-    timeWindow: '15 minutes',
-    keyGenerator: (req) => req.ip,
-    errorResponseBuilder: () => ({
-      error: 'Too many login attempts. Please try again in 15 minutes.',
-    }),
-  });
+  await fastify.register(rateLimit, authRateLimitOptions);
   fastify.register(authRoutes, { prefix: '/api/auth' });
 });
 
@@ -82,18 +66,19 @@ const clientPath = ENV.CLIENT_PATH || path.join(__dirname, '../../client/dist');
 app.register(staticPlugin, {
   root: clientPath,
   prefix: '/',
-  decorateReply: false,
 });
 
 // ── React router fallback ─────────────────────────────────────
-app.setNotFoundHandler(async (_request, reply) => {
+app.setNotFoundHandler(async (request, reply) => {
+  if (request.url.startsWith('/api/')) {
+    return reply.code(404).send({ error: 'API route not found.' });
+  }
   return reply.sendFile('index.html', clientPath);
 });
 
 // ── Graceful shutdown ─────────────────────────────────────────
 const shutdown = async (signal: string) => {
   logger.info(`${signal} received — shutting down`);
-  await closeQueues();
   await app.close();
   process.exit(0);
 };
@@ -108,9 +93,6 @@ initDatabase()
     logger.info('Database initialized successfully');
     await ensureAdmin();
     logger.info('Admin user ensured');
-
-    // Register BullMQ workers (no-op if Redis not configured)
-    registerAllWorkers();
 
     app.listen({ port: ENV.PORT, host: '0.0.0.0' }, (err) => {
       if (err) {
