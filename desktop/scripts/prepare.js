@@ -22,7 +22,10 @@ const NOT_NEEDED_AT_RUN_TIME = ['.bin', 'typescript', 'prisma', '@prisma/engines
 
 function run(command, args, cwd) {
   console.log(`\n> ${command} ${args.join(' ')}`);
-  execFileSync(command, args, { cwd, stdio: 'inherit', shell: process.platform === 'win32' });
+  // npm and npx are .cmd files on Windows, which need a shell, and a shell needs paths quoted
+  const isWindows = process.platform === 'win32';
+  const finalArgs = isWindows ? args.map((arg) => (arg.includes(' ') ? `"${arg}"` : arg)) : args;
+  execFileSync(command, finalArgs, { cwd, stdio: 'inherit', shell: isWindows });
 }
 
 function buildClient() {
