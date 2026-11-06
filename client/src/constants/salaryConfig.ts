@@ -58,6 +58,7 @@ export const NON_TARGET_CONFIG: Record<string, NonTargetRoleConfig> = {
   EXEC_MICRO_FIN_1:    { label: 'Executive Micro Finance 1',   basicSalary:  35_000, fixedAllowance:   5_000 },
   EXEC_MICRO_FIN_2:    { label: 'Executive Micro Finance 2',   basicSalary:  35_000, fixedAllowance:   5_000 },
   GEMO:                { label: 'Gemologist',                  basicSalary: 200_000, vehicleAllowance: 100_000, fuelAllowance: 80_000 },
+  HEAD_OF_SHARIA_PROJECT: { label: 'Head Of Sharia Project',   basicSalary: 200_000, vehicleAllowance: 150_000, fuelAllowance: 150_000 },
   EXEC_ASST_FIN:       { label: 'Executive Assistant Finance', basicSalary:  35_000 },
   COORD:               { label: 'Coordinator',                 basicSalary:  35_000 },
 };

@@ -197,6 +197,7 @@ describe('Category B role table (no inputs, no deductions)', () => {
     EXEC_MICRO_FIN_1:    { basic:  35_000, total:  40_000 },
     EXEC_MICRO_FIN_2:    { basic:  35_000, total:  40_000 },
     GEMO:                { basic: 200_000, total: 380_000 },
+    HEAD_OF_SHARIA_PROJECT: { basic: 200_000, total: 500_000 },
     EXEC_ASST_FIN:       { basic:  35_000, total:  35_000 },
     COORD:               { basic:  35_000, total:  35_000 },
   };

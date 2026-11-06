@@ -119,7 +119,7 @@ describe('ROLE_ALLOWANCES', () => {
       'Executive Gem 1': 40_000, 'Executive Gem 2': 35_000, 'Executive Media': 40_000,
       'Cabana Project Manager': 150_000, 'Network & IT Manager': 100_000, 'Head of Micro Finance': 130_000,
       'Executive Micro Finance 1': 40_000, 'Executive Micro Finance 2': 40_000,
-      'Gemologist': 380_000, 'Executive Assistant Finance': 35_000,
+      'Gemologist': 380_000, 'Head Of Sharia Project': 500_000, 'Executive Assistant Finance': 35_000,
       'Coordinator': 35_000, 'Land development 1': 200_000, 'Land development 2': 150_000,
       'supervisor land 1': 85_000, 'supervisor land 2': 40_000, 'watcher land': 45_000,
     };
