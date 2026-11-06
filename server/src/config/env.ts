@@ -4,6 +4,8 @@
 export const ENV = {
   // ── Server ──────────────────────────────────────────────────
   PORT: Number(process.env.PORT) || 4500,
+  // The desktop app sets 127.0.0.1 so other computers on the network cannot reach it
+  HOST: process.env.HOST || '0.0.0.0',
   NODE_ENV: process.env.NODE_ENV || 'development',
 
   // ── Cache / Queue ────────────────────────────────────────────

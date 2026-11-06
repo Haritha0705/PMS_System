@@ -94,7 +94,7 @@ initDatabase()
     await ensureAdmin();
     logger.info('Admin user ensured');
 
-    app.listen({ port: ENV.PORT, host: '0.0.0.0' }, (err) => {
+    app.listen({ port: ENV.PORT, host: ENV.HOST }, (err) => {
       if (err) {
         logger.error('Server failed to start:', err);
         process.exit(1);

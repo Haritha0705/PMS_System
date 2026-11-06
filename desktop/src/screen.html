@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src file:; font-src file: data:"
+    />
+    <title>PMS Application</title>
+  </head>
+  <body>
+    <div class="login-page">
+      <div class="login-bg"></div>
+      <div class="login-card">
+        <div class="login-logo" style="background: transparent; padding: 0">
+          <img id="logo" alt="PMS Logo" style="width: 64px; height: 64px; object-fit: contain" />
+        </div>
+
+        <div id="starting" hidden>
+          <h1>Starting PMS</h1>
+          <p class="subtitle">Connecting to the database</p>
+          <div class="spinner" style="margin: 0 auto"></div>
+        </div>
+
+        <div id="setup" hidden>
+          <h1>Connect to Database</h1>
+          <p class="subtitle">Enter the database connection for this computer</p>
+          <form id="setup-form">
+            <div class="form-group">
+              <label for="connection">Database Connection</label>
+              <input
+                id="connection"
+                type="password"
+                class="form-input"
+                placeholder="postgresql://..."
+                autocomplete="off"
+                required
+              />
+            </div>
+            <button id="save" type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top: 12px">
+              Connect
+            </button>
+          </form>
+          <p id="error" role="alert" style="color: var(--ruby-500); font-size: 12px; margin-top: 12px" hidden></p>
+        </div>
+      </div>
+    </div>
+    <script src="screen.js"></script>
+  </body>
+</html>

@@ -34,6 +34,23 @@ Bulk **Print** uses the printer attached to the server, so it is off in producti
 
 ---
 
+## 🖥️ Windows Desktop App
+
+The `desktop/` folder runs this app in its own Windows window. The server runs privately on the
+PC and connects to the same online database, so the PC needs internet access.
+
+```bash
+cd desktop && npm install && node node_modules/electron/install.js
+npm run desktop:dev          # try it on this computer
+npm run desktop:build:zip    # desktop/release/*.zip: unzip on Windows and run "PMS Application.exe"
+npm run desktop:build        # desktop/release/*.exe: installer (on Apple Silicon, needs Rosetta)
+```
+
+On first launch the app asks for the database connection and stores it encrypted for that Windows
+account. It is never placed in the build. Use **File → Change Database Connection** to change it.
+
+---
+
 ## 📦 Installation
 
 ### Prerequisites

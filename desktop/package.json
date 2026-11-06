@@ -1,0 +1,68 @@
+{
+  "name": "pms-desktop",
+  "productName": "PMS Application",
+  "version": "1.0.0",
+  "description": "PMS Application for Windows",
+  "author": "Prestige Glamour Working Capital Solutions",
+  "private": true,
+  "main": "src/main.js",
+  "scripts": {
+    "dev": "node scripts/prepare.js --dev && electron .",
+    "prepare:win": "node scripts/prepare.js",
+    "build:win": "node scripts/prepare.js && electron-builder --win --x64",
+    "build:win:zip": "node scripts/prepare.js && electron-builder --win zip --x64"
+  },
+  "devDependencies": {
+    "electron": "^45.2.3",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.prestigeglamour.pms",
+    "productName": "PMS Application",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": ".stage/server",
+        "to": "server",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": ".stage/client",
+        "to": "client",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "../client/public/icon.png",
+      "artifactName": "PMS-Application-${version}-win-x64.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PMS Application",
+      "artifactName": "PMS-Application-Setup-${version}.exe"
+    },
+    "afterPack": "scripts/after-pack.js"
+  }
+}
